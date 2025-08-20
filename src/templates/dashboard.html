@@ -417,9 +417,7 @@
         .list-url {
             font-size: 0.9rem;
             color: #666;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            white-space: pre-wrap;
         }
         
         .list-actions {
@@ -1007,13 +1005,47 @@
             <h3>📋 Batch Reply Dashboard</h3>
             <p>Load tweets from your Twitter list and generate AI replies for batch processing:</p>
             <br>
-            <div class="batch-controls" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <input type="text" id="batch-list-id" value="1957324919269929248" placeholder="Twitter List ID" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+            <!-- Content Source Selection -->
+            <div class="form-group">
+                <label>📥 Content Source:</label>
+                <select id="source-type" onchange="handleSourceTypeChange()" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+                    <option value="list" selected>Twitter List Only</option>
+                    <option value="search">Search Only</option>
+                    <option value="hybrid">Hybrid (List + Search)</option>
+                </select>
+            </div>
+
+            <!-- List Configuration -->
+            <div id="list-config" class="form-group">
+                <label>🔗 Twitter List ID:</label>
+                <input type="text" id="batch-list-id" value="1957324919269929248" placeholder="Twitter List ID" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 250px;">
+            </div>
+
+            <!-- Search Configuration -->
+            <div id="search-config" class="form-group" style="display: none;">
+                <label>🔍 Search Query:</label>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+                    <select id="search-preset" onchange="handlePresetChange()" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;">
+                        <option value="">Select a preset...</option>
+                    </select>
+                    <select id="search-type" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="Top" selected>Top Tweets</option>
+                        <option value="Latest">Latest Tweets</option>
+                        <option value="People">People</option>
+                        <option value="Photos">Photos</option>
+                        <option value="Videos">Videos</option>
+                    </select>
+                </div>
+                <textarea id="search-query" placeholder="Enter custom search query or select a preset above..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 60px; font-family: monospace; font-size: 0.9rem;"></textarea>
+                <small style="color: #666;">Tip: Use operators like OR, AND, -is:retweet, lang:en for better results</small>
+            </div>
+
+            <div class="batch-controls" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px;">
                 <select id="batch-count" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="3">3 tweets</option>
-                    <option value="5" selected>5 tweets</option>
-                    <option value="7">7 tweets</option>
-                    <option value="10">10 tweets</option>
+                    <option value="10" selected>10 tweets</option>
+                    <option value="20">20 tweets</option>
+                    <option value="30">30 tweets</option>
+                    <option value="40">40 tweets</option>
                 </select>
                 <select id="replies-per-tweet" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="1">1 reply/tweet</option>
@@ -1037,9 +1069,9 @@
                     </label>
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <label for="relevance-threshold" style="font-size: 0.9rem;">Relevance Threshold:</label>
-                        <input type="range" id="relevance-threshold" min="50" max="100" value="70" 
+                        <input type="range" id="relevance-threshold" min="20" max="100" value="20" 
                                style="width: 100px;" oninput="updateThresholdDisplay()">
-                        <span id="threshold-display" style="font-size: 0.9rem; font-weight: bold;">70%</span>
+                        <span id="threshold-display" style="font-size: 0.9rem; font-weight: bold;">20%</span>
                     </div>
                 </div>
                 <div style="margin-top: 5px; font-size: 0.8rem; color: #666;">
@@ -1079,8 +1111,13 @@
                 <h3>🐦 Recent User Replies</h3>
                 <p>Your recent replies from Twitter (used for similarity checking):</p>
                 <div id="user-replies-container">
-                    <div class="loading" id="user-replies-loading">Loading recent replies...</div>
-                    <div id="user-replies-list"></div>
+                    <div class="loading" id="user-replies-loading" style="display: none;">Loading recent replies...</div>
+                    <div id="user-replies-list">
+                        <p style="color: #666; text-align: center; padding: 1rem;">
+                            Click "🔄 Refresh Replies" to load your recent replies<br>
+                            <small>(saves API usage by loading only when needed)</small>
+                        </p>
+                    </div>
                 </div>
                 <button class="button button-secondary" onclick="loadUserReplies()" style="margin-top: 1rem;">🔄 Refresh Replies</button>
             </div>
@@ -1193,7 +1230,8 @@
         setInterval(updateStatus, 10000);
         updateStatus(); // Initial load
         loadReplyHistory(); // Load reply history
-        loadUserReplies(); // Load recent user replies
+        // loadUserReplies(); // Commented out - user can manually load to save API usage
+        loadSearchPresets(); // Load search query presets
         
         // Global variables for AI workflow
         let currentAnalyzedTweet = null;
@@ -2195,8 +2233,19 @@
             const enableFiltering = document.getElementById('enable-filtering').checked;
             const relevanceThreshold = parseInt(document.getElementById('relevance-threshold').value);
             
-            if (!listId) {
-                alert('Please enter a Twitter List ID');
+            // New search functionality parameters
+            const sourceType = document.getElementById('source-type').value;
+            const searchQuery = document.getElementById('search-query').value.trim();
+            const searchType = document.getElementById('search-type').value;
+            
+            // Validation
+            if ((sourceType === 'list' || sourceType === 'hybrid') && !listId) {
+                alert('Please enter a Twitter List ID for list or hybrid mode');
+                return;
+            }
+            
+            if ((sourceType === 'search' || sourceType === 'hybrid') && !searchQuery) {
+                alert('Please enter a search query for search or hybrid mode');
                 return;
             }
             
@@ -2224,7 +2273,10 @@
                         reply_style: replyStyle,
                         custom_tone: customTone,
                         enable_filtering: enableFiltering,
-                        relevance_threshold: relevanceThreshold
+                        relevance_threshold: relevanceThreshold,
+                        source_type: sourceType,
+                        search_query: searchQuery,
+                        search_type: searchType
                     })
                 });
                 
@@ -2997,6 +3049,57 @@
         }
         
         // Simple notification system
+        // Search Functionality
+        async function loadSearchPresets() {
+            try {
+                const response = await fetch('/api/search/presets');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const presetSelect = document.getElementById('search-preset');
+                    
+                    // Clear existing options except the first one
+                    presetSelect.innerHTML = '<option value="">Select a preset...</option>';
+                    
+                    // Add preset options
+                    for (const [key, query] of Object.entries(result.presets)) {
+                        const option = document.createElement('option');
+                        option.value = query;
+                        option.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        presetSelect.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading search presets:', error);
+            }
+        }
+
+        function handleSourceTypeChange() {
+            const sourceType = document.getElementById('source-type').value;
+            const listConfig = document.getElementById('list-config');
+            const searchConfig = document.getElementById('search-config');
+            
+            if (sourceType === 'list') {
+                listConfig.style.display = 'block';
+                searchConfig.style.display = 'none';
+            } else if (sourceType === 'search') {
+                listConfig.style.display = 'none';
+                searchConfig.style.display = 'block';
+            } else if (sourceType === 'hybrid') {
+                listConfig.style.display = 'block';
+                searchConfig.style.display = 'block';
+            }
+        }
+
+        function handlePresetChange() {
+            const presetSelect = document.getElementById('search-preset');
+            const queryTextarea = document.getElementById('search-query');
+            
+            if (presetSelect.value) {
+                queryTextarea.value = presetSelect.value;
+            }
+        }
+
         function showNotification(message, type = 'info') {
             // Create notification element
             const notification = document.createElement('div');

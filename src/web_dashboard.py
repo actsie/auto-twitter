@@ -692,6 +692,14 @@ async def get_reply_history(limit: int = 20):
         logger.error(f"Error fetching reply history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/search/presets")
+async def get_search_presets():
+    """Get available search query presets"""
+    return {
+        "success": True,
+        "presets": settings.search_presets
+    }
+
 @app.get("/api/replies/user-replies")
 async def get_user_replies(count: int = 20):
     """Get recent user replies from Twitter via RapidAPI"""
@@ -1533,15 +1541,26 @@ async def batch_process_list_tweets(request: Request):
         reply_style = body.get("reply_style", "engaging_casual")
         custom_tone = body.get("custom_tone", "")
         enable_filtering = body.get("enable_filtering", True)
-        relevance_threshold = body.get("relevance_threshold", 70.0)
+        relevance_threshold = body.get("relevance_threshold", 50.0)
+        
+        # New search functionality parameters
+        source_type = body.get("source_type", "list")  # "list", "search", "hybrid"
+        search_query = body.get("search_query", "").strip()
+        search_type = body.get("search_type", "Top")  # "Top", "Latest", "People", etc.
         
         # Validate inputs
-        if not list_id:
-            raise HTTPException(status_code=400, detail="List ID is required")
+        if not list_id and source_type in ["list", "hybrid"]:
+            raise HTTPException(status_code=400, detail="List ID is required for list and hybrid modes")
         
-        count = max(1, min(count, 10))  # Limit between 1-10
+        if source_type in ["search", "hybrid"] and not search_query:
+            raise HTTPException(status_code=400, detail="Search query is required for search and hybrid modes")
+        
+        # Validate ranges
+        count = max(1, min(count, 40))  # Limit between 1-40
         replies_per_tweet = max(1, min(replies_per_tweet, 5))  # Limit between 1-5
-        relevance_threshold = max(50.0, min(relevance_threshold, 100.0))  # Limit between 50-100%
+        relevance_threshold = max(10.0, min(relevance_threshold, 100.0))  # Limit between 10-100%
+        source_type = source_type if source_type in ["list", "search", "hybrid"] else "list"
+        search_type = search_type if search_type in ["Top", "Latest", "People", "Photos", "Videos"] else "Top"
         
         add_to_activity_log(f"Starting batch processing for list {list_id}, loading {count} tweets", "info")
         
@@ -1648,79 +1667,67 @@ async def batch_process_list_tweets(request: Request):
             add_to_activity_log(f"Using {'V2 Bulletproof' if use_v2_filter else 'V1 Legacy'} content filter (threshold: {relevance_threshold}%)", "info")
             
             if use_v2_filter:
-                # V2: Bulletproof filtering with decisions tracking
-                add_to_activity_log(f"Analyzing {len(all_tweets)} tweets with bulletproof filter", "info")
+                # V2: Smart Backfill with Bulletproof filtering
+                from .smart_backfill import smart_backfill
                 
                 # Set threshold
                 bulletproof_analyzer.relevance_threshold = relevance_threshold
                 
-                # Analyze with new system
-                filtering_decisions = await bulletproof_analyzer.analyze_tweets(all_tweets)
+                add_to_activity_log(f"Starting smart backfill to find {target_tweet_count} relevant tweets", "info")
                 
-                # Save decisions to database for telemetry (FAIL-SAFE)
-                decision_save_failures = 0
-                for decision in filtering_decisions:
-                    try:
-                        from .database import TweetDecision
-                        # Get tweet text from original tweets
-                        tweet_obj = next((t for t in all_tweets if t.tweet_id == decision.tweet_id), None)
-                        if not tweet_obj:
-                            continue
-                            
-                        db_decision = TweetDecision(
-                            tweet_id=decision.tweet_id,
-                            list_id=str(list_id),
-                            author_username=tweet_obj.author_username,
-                            tweet_text=tweet_obj.text,
-                            stage_quick=decision.stage_quick,
-                            quick_reason=decision.quick_reason,
-                            stage_ai=decision.stage_ai,
-                            ai_score=decision.ai_score,
-                            ai_reason=decision.ai_reason,
-                            final=decision.final,
-                            categories=json.dumps(decision.categories) if decision.categories else None,
-                            processing_time_ms=decision.processing_time_ms,
-                            relevance_threshold=relevance_threshold,
-                            filter_version="v2",
-                            created_at=datetime.now()
-                        )
-                        
-                        result = db.save_tweet_decision(db_decision)
-                        if not result:
-                            decision_save_failures += 1
-                            
-                    except Exception as e:
-                        decision_save_failures += 1
-                        logger.error(f"Failed to save decision for tweet {decision.tweet_id}: {e}")
-                
-                # FAIL-SAFE: Only disable filtering if core analysis fails (not database saves)
-                # Allow filtering to continue even if database saves fail - filtering is more important than logging
-                if decision_save_failures > 0:
-                    add_to_activity_log(f"Warning: {decision_save_failures}/{len(filtering_decisions)} decision saves failed (database issues). Continuing with filtering.", "warning")
-                    logger.warning(f"Database save failures: {decision_save_failures}/{len(filtering_decisions)}, but filtering will continue")
-                
-                # Only abort if we have no filtering decisions at all (core analysis failure)
-                if not filtering_decisions:
-                    error_msg = "Core filtering analysis failed - no decisions generated"
-                    add_to_activity_log(error_msg, "error")
-                    logger.error(error_msg)
-                    raise HTTPException(status_code=503, detail="Filtering system analysis failed")
-                
-                # Filter to approved tweets only
-                approved_tweet_ids = {d.tweet_id for d in filtering_decisions if d.final == 'approved'}
-                filtered_tweets = [tweet for tweet in all_tweets if tweet.tweet_id in approved_tweet_ids]
-                
-                # Get V2 filtering statistics
-                filtering_stats = bulletproof_analyzer.get_filtering_stats()
-                
-                approved_count = len(filtered_tweets)
-                total_analyzed = len(all_tweets)
-                approval_rate = (approved_count / total_analyzed * 100) if total_analyzed > 0 else 0
-                
-                add_to_activity_log(
-                    f"V2 Bulletproof filtering complete: {approved_count}/{total_analyzed} tweets approved ({approval_rate:.1f}%)",
-                    "success" if approved_count > 0 else "warning"
+                # Use smart backfill to find exactly the number of tweets we need
+                backfill_result = await smart_backfill.find_relevant_tweets(
+                    list_id=str(list_id),
+                    target_count=target_tweet_count,
+                    rapidapi_client=rapidapi_client,
+                    source_type=source_type,
+                    search_query=search_query,
+                    search_type=search_type
                 )
+                
+                # Extract results
+                filtered_tweets = backfill_result.approved_tweets
+                
+                # Get comprehensive statistics
+                filtering_stats = bulletproof_analyzer.get_filtering_stats()
+                backfill_telemetry = smart_backfill.get_telemetry_summary()
+                
+                # Enhanced backfill statistics
+                backfill_stats.update({
+                    "needed_backfill": backfill_result.attempts_made > 1,
+                    "target_count": target_tweet_count,
+                    "final_relevant_count": len(filtered_tweets),
+                    "stop_reason": backfill_result.stop_reason,
+                    "attempts_made": backfill_result.attempts_made,
+                    "total_analyzed": backfill_result.total_analyzed,
+                    "final_approval_rate": backfill_result.final_approval_rate,
+                    "window_minutes_final": backfill_result.window_minutes_final,
+                    "telemetry": backfill_telemetry
+                })
+                
+                # Create comprehensive status message
+                if backfill_result.stop_reason == "target_met":
+                    success_level = "success"
+                    if backfill_result.attempts_made == 1:
+                        status_msg = f"V2 Smart Backfill: Found {len(filtered_tweets)}/{target_tweet_count} tweets in first attempt ({backfill_result.final_approval_rate:.1f}% approval rate)"
+                    else:
+                        status_msg = f"V2 Smart Backfill: Found {len(filtered_tweets)}/{target_tweet_count} tweets after {backfill_result.attempts_made} attempts ({backfill_result.final_approval_rate:.1f}% approval rate from {backfill_result.total_analyzed} analyzed)"
+                elif backfill_result.stop_reason == "max_total_fetch":
+                    success_level = "warning"
+                    status_msg = f"V2 Smart Backfill: Found {len(filtered_tweets)}/{target_tweet_count} tweets (stopped at fetch limit: {backfill_result.total_analyzed} analyzed, {backfill_result.final_approval_rate:.1f}% approval rate)"
+                elif backfill_result.stop_reason == "low_approval_rate":
+                    success_level = "warning"
+                    status_msg = f"V2 Smart Backfill: Found {len(filtered_tweets)}/{target_tweet_count} tweets (stopped due to low approval rate: {backfill_result.final_approval_rate:.1f}%)"
+                else:  # max_attempts
+                    success_level = "warning" if len(filtered_tweets) > 0 else "error"
+                    status_msg = f"V2 Smart Backfill: Found {len(filtered_tweets)}/{target_tweet_count} tweets (max attempts reached: {backfill_result.attempts_made})"
+                
+                add_to_activity_log(status_msg, success_level)
+                
+                # Log detailed telemetry for monitoring
+                logger.info(f"Smart Backfill Results: stop_reason={backfill_result.stop_reason}, "
+                           f"attempts={backfill_result.attempts_made}, analyzed={backfill_result.total_analyzed}, "
+                           f"approved={len(filtered_tweets)}, rate={backfill_result.final_approval_rate:.1f}%")
                 
                 content_analyses = []  # V2 doesn't need this for reply generation
                 
