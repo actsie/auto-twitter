@@ -32,6 +32,7 @@ from .manual_reply import manual_reply_service
 from .rapidapi_client import rapidapi_client
 from .ai_reply_generator import ai_reply_generator, ReplyOptions
 from .content_analyzer import content_analyzer
+from .content_analyzer_v2 import bulletproof_analyzer
 from .reply_comparison import reply_comparator
 from .tweet_interaction import tweet_interaction_service
 
@@ -214,6 +215,169 @@ async def get_status():
     except Exception as e:
         logger.error(f"Error getting status: {e}")
         return {"status": "error", "message": str(e)}
+
+@app.get("/api/filtering/stats")
+async def get_filtering_stats():
+    """Get comprehensive filtering statistics"""
+    try:
+        # Get decision stats from database
+        decision_stats = db.get_decision_stats(hours_back=24)
+        
+        # Get current analyzer stats
+        if settings.feature_filter_v2:
+            analyzer_stats = bulletproof_analyzer.get_filtering_stats()
+            filter_version = "v2"
+        else:
+            analyzer_stats = content_analyzer.get_filtering_stats([])
+            filter_version = "v1"
+        
+        return {
+            "filter_version": filter_version,
+            "feature_filter_v2_enabled": settings.feature_filter_v2,
+            "current_threshold": settings.relevance_threshold,
+            "rate_limits": {
+                "max_approvals_per_hour": settings.max_approvals_per_hour,
+                "max_per_author_6h": settings.max_per_author_6h
+            },
+            "database_stats": decision_stats,
+            "analyzer_stats": analyzer_stats,
+            "alerts": {
+                "approval_rate_target": settings.approval_rate_target,
+                "current_rate_in_range": 5.0 <= decision_stats.get("approval_rate", 0) <= 15.0
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting filtering stats: {e}")
+        return {"error": str(e)}
+
+@app.get("/api/filtering/health")
+async def get_filtering_health():
+    """Get filtering system health status"""
+    try:
+        # Test basic database connectivity
+        try:
+            # Test tweet_decisions table exists and is accessible
+            health_check = db.client.table("tweet_decisions").select("id").limit(1).execute()
+            db_healthy = True
+            db_error = None
+        except Exception as e:
+            db_healthy = False
+            db_error = str(e)
+        
+        # Get recent performance metrics
+        try:
+            recent_stats = db.get_decision_stats(hours_back=1)  # Last hour
+            daily_stats = db.get_decision_stats(hours_back=24)  # Last day
+        except Exception as e:
+            recent_stats = {"total": 0, "approved": 0, "approval_rate": 0}
+            daily_stats = {"total": 0, "approved": 0, "approval_rate": 0}
+        
+        # Check if V2 filter is properly configured
+        v2_configured = (
+            settings.feature_filter_v2 and 
+            settings.openai_api_key and 
+            settings.supabase_url and 
+            settings.supabase_key
+        )
+        
+        # Determine overall health status
+        if db_healthy and v2_configured:
+            health_status = "healthy"
+            health_message = "All systems operational"
+        elif not db_healthy:
+            health_status = "critical"
+            health_message = f"Database connectivity failed: {db_error}"
+        elif not v2_configured:
+            health_status = "degraded"
+            health_message = "V2 filtering not properly configured"
+        else:
+            health_status = "unknown"
+            health_message = "Unable to determine health status"
+        
+        return {
+            "status": health_status,
+            "message": health_message,
+            "timestamp": datetime.now().isoformat(),
+            "database": {
+                "healthy": db_healthy,
+                "error": db_error
+            },
+            "configuration": {
+                "v2_enabled": settings.feature_filter_v2,
+                "threshold": settings.relevance_threshold,
+                "rate_limits": {
+                    "hourly": settings.max_approvals_per_hour,
+                    "per_author_6h": settings.max_per_author_6h
+                }
+            },
+            "metrics": {
+                "last_hour": recent_stats,
+                "last_24h": daily_stats
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting filtering health: {e}")
+        return {
+            "status": "error",
+            "message": f"Health check failed: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/api/filtering/test-seed")
+async def test_seed_data():
+    """Test the seed data for QA verification"""
+    try:
+        if not db.client:
+            return {"error": "Database not configured"}
+        
+        # Query seed data results
+        result = db.client.table("tweet_decisions") \
+            .select("final, tweet_id, ai_score, ai_reason") \
+            .eq("filter_version", "seed") \
+            .execute()
+        
+        if not result.data:
+            return {
+                "error": "No seed data found. Run the database migration first.",
+                "instructions": "Execute supabase/migrations/20250820_filtering_v2.sql in your Supabase dashboard"
+            }
+        
+        # Analyze seed results
+        total_seeds = len(result.data)
+        approved_seeds = [r for r in result.data if r["final"] == "approved"]
+        rejected_seeds = [r for r in result.data if r["final"] == "rejected"]
+        
+        approval_rate = (len(approved_seeds) / total_seeds * 100) if total_seeds > 0 else 0
+        
+        # Expected: ~37.5% approval rate (3/8 tweets should be approved)
+        expected_approvals = 3
+        expected_rejections = 5
+        test_passed = (
+            len(approved_seeds) == expected_approvals and
+            len(rejected_seeds) == expected_rejections
+        )
+        
+        return {
+            "test_passed": test_passed,
+            "total_seeds": total_seeds,
+            "approved": len(approved_seeds),
+            "rejected": len(rejected_seeds),
+            "approval_rate": round(approval_rate, 1),
+            "expected": {
+                "approved": expected_approvals,
+                "rejected": expected_rejections,
+                "approval_rate": 37.5
+            },
+            "details": {
+                "approved_tweets": approved_seeds,
+                "rejected_tweets": rejected_seeds
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error testing seed data: {e}")
+        return {"error": str(e)}
 
 @app.post("/api/trigger/poll")
 async def trigger_poll(background_tasks: BackgroundTasks):
@@ -1415,9 +1579,15 @@ async def batch_process_list_tweets(request: Request):
             add_to_activity_log(error_msg, "error")
             raise HTTPException(status_code=500, detail=error_msg)
         
-        # Step 1.5: Filter out already-processed tweets (including replied-to tweets)
-        replied_tweet_ids = set(db.get_replied_tweet_ids())
-        processed_tweet_ids = set(db.bulk_check_processed_tweets([tweet.tweet_id for tweet in all_tweets]))
+        # Step 1.5: Filter out already-processed tweets (including replied-to tweets) - FAIL-SAFE
+        try:
+            replied_tweet_ids = set(db.get_replied_tweet_ids())
+            processed_tweet_ids = set(db.bulk_check_processed_tweets([tweet.tweet_id for tweet in all_tweets]))
+        except Exception as e:
+            error_msg = f"Database error checking processed tweets: {str(e)}. Cannot ensure deduplication - aborting for safety."
+            add_to_activity_log(error_msg, "error")
+            logger.error(error_msg)
+            raise HTTPException(status_code=503, detail="Database unavailable for deduplication check")
         
         tweets_before_filter = len(all_tweets)
         
@@ -1470,81 +1640,156 @@ async def batch_process_list_tweets(request: Request):
         }
         
         if enable_filtering:
-            # Iterative filtering with backfill
-            attempt = 1
+            # V2 Bulletproof Filtering with Shadow Mode
+            use_v2_filter = settings.feature_filter_v2
             
-            while len(filtered_tweets) < target_tweet_count and attempt <= max_fetch_attempts and len(all_tweets) < max_total_tweets:
-                try:
-                    add_to_activity_log(f"Attempt {attempt}: Analyzing {len(all_tweets)} tweets for content relevance (threshold: {relevance_threshold}%)", "info")
-                    
-                    # Set threshold for this analysis
-                    content_analyzer.relevance_threshold = relevance_threshold
-                    
-                    # Analyze content relevance for all tweets
-                    content_analyses = await content_analyzer.analyze_tweets(all_tweets)
-                    
-                    # Filter to only relevant tweets
-                    filtered_tweets = content_analyzer.filter_relevant_tweets(all_tweets, content_analyses)
-                    
-                    # Check if we need more tweets
-                    if len(filtered_tweets) < target_tweet_count and attempt < max_fetch_attempts:
-                        backfill_stats["needed_backfill"] = True
-                        
-                        # Calculate how many more tweets we need to fetch
-                        current_success_rate = len(filtered_tweets) / len(all_tweets) if len(all_tweets) > 0 else 0.5
-                        needed_tweets = target_tweet_count - len(filtered_tweets)
-                        
-                        # Estimate batch size needed (with buffer)
-                        if current_success_rate > 0:
-                            estimated_batch_size = int(needed_tweets / current_success_rate * 1.5)
-                        else:
-                            estimated_batch_size = needed_tweets * 3
-                        
-                        # Cap the batch size
-                        estimated_batch_size = min(estimated_batch_size, max_total_tweets - len(all_tweets))
-                        
-                        if estimated_batch_size > 0:
-                            add_to_activity_log(
-                                f"Need {needed_tweets} more relevant tweets. Fetching {estimated_batch_size} additional tweets (success rate: {current_success_rate:.1%})",
-                                "info"
-                            )
-                            
-                            # Fetch more tweets
-                            additional_tweets = await rapidapi_client.scrape_twitter_list(list_id, estimated_batch_size)
-                            if not additional_tweets:
-                                additional_tweets = rapidapi_client._generate_mock_list_tweets(list_id, estimated_batch_size)
-                            
-                            # Remove duplicates by tweet ID
-                            existing_ids = {tweet.tweet_id for tweet in all_tweets}
-                            new_tweets = [tweet for tweet in additional_tweets if tweet.tweet_id not in existing_ids]
-                            
-                            all_tweets.extend(new_tweets)
-                            fetch_stats["attempts"] += 1
-                            fetch_stats["total_fetched"] += len(new_tweets)
-                            fetch_stats["batch_sizes"].append(len(new_tweets))
-                            
-                            add_to_activity_log(f"Fetched {len(new_tweets)} additional tweets ({len(new_tweets)} new, {len(additional_tweets) - len(new_tweets)} duplicates)", "success")
-                    
-                    attempt += 1
-                    
-                except Exception as e:
-                    error_msg = f"Error in content analysis (attempt {attempt}): {str(e)}"
-                    add_to_activity_log(error_msg, "warning")
-                    logger.warning(f"Content filtering failed on attempt {attempt}: {e}")
-                    break
+            add_to_activity_log(f"Using {'V2 Bulletproof' if use_v2_filter else 'V1 Legacy'} content filter (threshold: {relevance_threshold}%)", "info")
             
-            # Keep all relevant tweets - don't waste good content
+            if use_v2_filter:
+                # V2: Bulletproof filtering with decisions tracking
+                add_to_activity_log(f"Analyzing {len(all_tweets)} tweets with bulletproof filter", "info")
+                
+                # Set threshold
+                bulletproof_analyzer.relevance_threshold = relevance_threshold
+                
+                # Analyze with new system
+                filtering_decisions = await bulletproof_analyzer.analyze_tweets(all_tweets)
+                
+                # Save decisions to database for telemetry (FAIL-SAFE)
+                decision_save_failures = 0
+                for decision in filtering_decisions:
+                    try:
+                        from .database import TweetDecision
+                        # Get tweet text from original tweets
+                        tweet_obj = next((t for t in all_tweets if t.tweet_id == decision.tweet_id), None)
+                        if not tweet_obj:
+                            continue
+                            
+                        db_decision = TweetDecision(
+                            tweet_id=decision.tweet_id,
+                            list_id=str(list_id),
+                            author_username=tweet_obj.author_username,
+                            tweet_text=tweet_obj.text,
+                            stage_quick=decision.stage_quick,
+                            quick_reason=decision.quick_reason,
+                            stage_ai=decision.stage_ai,
+                            ai_score=decision.ai_score,
+                            ai_reason=decision.ai_reason,
+                            final=decision.final,
+                            categories=json.dumps(decision.categories) if decision.categories else None,
+                            processing_time_ms=decision.processing_time_ms,
+                            relevance_threshold=relevance_threshold,
+                            filter_version="v2",
+                            created_at=datetime.now()
+                        )
+                        
+                        result = db.save_tweet_decision(db_decision)
+                        if not result:
+                            decision_save_failures += 1
+                            
+                    except Exception as e:
+                        decision_save_failures += 1
+                        logger.error(f"Failed to save decision for tweet {decision.tweet_id}: {e}")
+                
+                # FAIL-SAFE: If we can't save decisions, don't proceed with filtering
+                if decision_save_failures > len(filtering_decisions) * 0.5:  # >50% failures
+                    error_msg = f"Database failure: {decision_save_failures}/{len(filtering_decisions)} decision saves failed. Filtering disabled for safety."
+                    add_to_activity_log(error_msg, "error")
+                    logger.error(error_msg)
+                    raise HTTPException(status_code=503, detail="Filtering system unavailable due to database errors")
+                
+                # Filter to approved tweets only
+                approved_tweet_ids = {d.tweet_id for d in filtering_decisions if d.final == 'approved'}
+                filtered_tweets = [tweet for tweet in all_tweets if tweet.tweet_id in approved_tweet_ids]
+                
+                # Get V2 filtering statistics
+                filtering_stats = bulletproof_analyzer.get_filtering_stats()
+                
+                approved_count = len(filtered_tweets)
+                total_analyzed = len(all_tweets)
+                approval_rate = (approved_count / total_analyzed * 100) if total_analyzed > 0 else 0
+                
+                add_to_activity_log(
+                    f"V2 Bulletproof filtering complete: {approved_count}/{total_analyzed} tweets approved ({approval_rate:.1f}%)",
+                    "success" if approved_count > 0 else "warning"
+                )
+                
+                content_analyses = []  # V2 doesn't need this for reply generation
+                
+            else:
+                # V1: Legacy filtering (keep for comparison in shadow mode)
+                attempt = 1
+                
+                while len(filtered_tweets) < target_tweet_count and attempt <= max_fetch_attempts and len(all_tweets) < max_total_tweets:
+                    try:
+                        add_to_activity_log(f"Attempt {attempt}: Analyzing {len(all_tweets)} tweets for content relevance (threshold: {relevance_threshold}%)", "info")
+                        
+                        # Set threshold for this analysis
+                        content_analyzer.relevance_threshold = relevance_threshold
+                        
+                        # Analyze content relevance for all tweets
+                        content_analyses = await content_analyzer.analyze_tweets(all_tweets)
+                        
+                        # Filter to only relevant tweets
+                        filtered_tweets = content_analyzer.filter_relevant_tweets(all_tweets, content_analyses)
+                        
+                        # Check if we need more tweets
+                        if len(filtered_tweets) < target_tweet_count and attempt < max_fetch_attempts:
+                            backfill_stats["needed_backfill"] = True
+                            
+                            # Calculate how many more tweets we need to fetch
+                            current_success_rate = len(filtered_tweets) / len(all_tweets) if len(all_tweets) > 0 else 0.5
+                            needed_tweets = target_tweet_count - len(filtered_tweets)
+                            
+                            # Estimate batch size needed (with buffer)
+                            if current_success_rate > 0:
+                                estimated_batch_size = int(needed_tweets / current_success_rate * 1.5)
+                            else:
+                                estimated_batch_size = needed_tweets * 3
+                            
+                            # Cap the batch size
+                            estimated_batch_size = min(estimated_batch_size, max_total_tweets - len(all_tweets))
+                            
+                            if estimated_batch_size > 0:
+                                add_to_activity_log(
+                                    f"Need {needed_tweets} more relevant tweets. Fetching {estimated_batch_size} additional tweets (success rate: {current_success_rate:.1%})",
+                                    "info"
+                                )
+                                
+                                # Fetch more tweets
+                                additional_tweets = await rapidapi_client.scrape_twitter_list(list_id, estimated_batch_size)
+                                if not additional_tweets:
+                                    additional_tweets = rapidapi_client._generate_mock_list_tweets(list_id, estimated_batch_size)
+                                
+                                # Remove duplicates by tweet ID
+                                existing_ids = {tweet.tweet_id for tweet in all_tweets}
+                                new_tweets = [tweet for tweet in additional_tweets if tweet.tweet_id not in existing_ids]
+                                
+                                all_tweets.extend(new_tweets)
+                                fetch_stats["attempts"] += 1
+                                fetch_stats["total_fetched"] += len(new_tweets)
+                                fetch_stats["batch_sizes"].append(len(new_tweets))
+                                
+                                add_to_activity_log(f"Fetched {len(new_tweets)} additional tweets ({len(new_tweets)} new, {len(additional_tweets) - len(new_tweets)} duplicates)", "success")
+                        
+                        attempt += 1
+                        
+                    except Exception as e:
+                        error_msg = f"Error in content analysis (attempt {attempt}): {str(e)}"
+                        add_to_activity_log(error_msg, "warning")
+                        logger.warning(f"Content filtering failed on attempt {attempt}: {e}")
+                        break
+                
+                # Get final filtering statistics
+                if content_analyses:
+                    filtering_stats = content_analyzer.get_filtering_stats(content_analyses)
+                
+                add_to_activity_log(
+                    f"V1 Legacy filtering complete: {len(filtered_tweets)}/{len(all_tweets)} tweets passed filter",
+                    "success" if len(filtered_tweets) > 0 else "warning"
+                )
             
             backfill_stats["final_relevant_count"] = len(filtered_tweets)
-            
-            # Get final filtering statistics
-            if content_analyses:
-                filtering_stats = content_analyzer.get_filtering_stats(content_analyses)
-            
-            add_to_activity_log(
-                f"Smart filtering complete: {len(filtered_tweets)}/{len(all_tweets)} tweets passed filter (fetched {len(all_tweets)} total to get {len(filtered_tweets)} relevant)",
-                "success" if len(filtered_tweets) > 0 else "warning"
-            )
                 
         else:
             add_to_activity_log("Content filtering disabled, processing all tweets", "info")

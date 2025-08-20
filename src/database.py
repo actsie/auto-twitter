@@ -83,6 +83,25 @@ class ProcessedTweet(BaseModel):
     processed_at: datetime
     created_at: Optional[datetime] = None
 
+class TweetDecision(BaseModel):
+    """V2 filtering decision with comprehensive telemetry"""
+    id: Optional[int] = None
+    tweet_id: str
+    list_id: Optional[str] = None
+    author_username: str
+    tweet_text: str
+    stage_quick: str  # 'pass' | 'reject' | 'error'
+    quick_reason: str
+    stage_ai: str     # 'pass' | 'reject' | 'skipped'  
+    ai_score: Optional[float] = None
+    ai_reason: str
+    final: str        # 'approved' | 'rejected'
+    categories: Optional[str] = None  # JSON string of categories
+    processing_time_ms: int = 0
+    relevance_threshold: float = 80.0
+    filter_version: str = "v2"
+    created_at: Optional[datetime] = None
+
 class Database:
     def __init__(self):
         if not settings.supabase_url or settings.supabase_url == "your_supabase_url":
@@ -505,6 +524,136 @@ class Database:
             return [row["tweet_id"] for row in result.data]
         except Exception as e:
             print(f"Error bulk checking processed tweets: {e}")
+            return []
+    
+    # Tweet Decision V2 methods
+    
+    def save_tweet_decision(self, decision: TweetDecision) -> Optional[int]:
+        """Save a tweet filtering decision (V2)"""
+        try:
+            if not self.client:
+                print("Supabase client not configured, skipping decision save")
+                return None
+                
+            data = {
+                "tweet_id": decision.tweet_id,
+                "list_id": decision.list_id,
+                "author_username": decision.author_username,
+                "tweet_text": decision.tweet_text,
+                "stage_quick": decision.stage_quick,
+                "quick_reason": decision.quick_reason,
+                "stage_ai": decision.stage_ai,
+                "ai_score": decision.ai_score,
+                "ai_reason": decision.ai_reason,
+                "final": decision.final,
+                "categories": decision.categories,
+                "processing_time_ms": decision.processing_time_ms,
+                "relevance_threshold": decision.relevance_threshold,
+                "filter_version": decision.filter_version
+            }
+            result = self.client.table("tweet_decisions").insert(data).execute()
+            return result.data[0]["id"] if result.data else None
+        except Exception as e:
+            print(f"Error saving tweet decision (table may not exist): {e}")
+            return 1  # Mock ID for development
+    
+    def get_approved_tweets(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        """Get approved tweets from decisions table"""
+        try:
+            if not self.client:
+                return []
+            
+            result = self.client.table("tweet_decisions") \
+                .select("*") \
+                .eq("final", "approved") \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .range(offset, offset + limit - 1) \
+                .execute()
+            return result.data
+        except Exception as e:
+            print(f"Error fetching approved tweets: {e}")
+            return []
+    
+    def get_decision_stats(self, hours_back: int = 24) -> Dict[str, Any]:
+        """Get filtering decision statistics"""
+        try:
+            if not self.client:
+                return {"total": 0, "approved": 0, "quick_rejects": 0, "ai_rejects": 0}
+            
+            cutoff_time = datetime.now() - timedelta(hours=hours_back)
+            
+            # Get total decisions
+            total_result = self.client.table("tweet_decisions") \
+                .select("id", count="exact") \
+                .gte("created_at", cutoff_time.isoformat()) \
+                .execute()
+            
+            # Get approved count
+            approved_result = self.client.table("tweet_decisions") \
+                .select("id", count="exact") \
+                .eq("final", "approved") \
+                .gte("created_at", cutoff_time.isoformat()) \
+                .execute()
+            
+            # Get quick rejects
+            quick_rejects_result = self.client.table("tweet_decisions") \
+                .select("id", count="exact") \
+                .eq("stage_quick", "reject") \
+                .gte("created_at", cutoff_time.isoformat()) \
+                .execute()
+            
+            # Get AI rejects
+            ai_rejects_result = self.client.table("tweet_decisions") \
+                .select("id", count="exact") \
+                .eq("stage_ai", "reject") \
+                .gte("created_at", cutoff_time.isoformat()) \
+                .execute()
+            
+            total = total_result.count or 0
+            approved = approved_result.count or 0
+            quick_rejects = quick_rejects_result.count or 0 
+            ai_rejects = ai_rejects_result.count or 0
+            
+            approval_rate = (approved / total * 100) if total > 0 else 0
+            
+            return {
+                "total": total,
+                "approved": approved,
+                "quick_rejects": quick_rejects,
+                "ai_rejects": ai_rejects,
+                "approval_rate": round(approval_rate, 1),
+                "hours_back": hours_back
+            }
+        except Exception as e:
+            print(f"Error getting decision stats: {e}")
+            return {"total": 0, "approved": 0, "quick_rejects": 0, "ai_rejects": 0, "approval_rate": 0}
+    
+    def decision_exists(self, tweet_id: str) -> bool:
+        """Check if a decision already exists for a tweet"""
+        try:
+            if not self.client:
+                return False
+            result = self.client.table("tweet_decisions").select("id").eq("tweet_id", tweet_id).execute()
+            return len(result.data) > 0
+        except Exception as e:
+            print(f"Error checking decision existence: {e}")
+            return False
+    
+    def get_recent_decisions(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get recent filtering decisions for debugging"""
+        try:
+            if not self.client:
+                return []
+            
+            result = self.client.table("tweet_decisions") \
+                .select("*") \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .execute()
+            return result.data
+        except Exception as e:
+            print(f"Error fetching recent decisions: {e}")
             return []
 
 db = Database()

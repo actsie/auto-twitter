@@ -28,5 +28,13 @@ class Settings:
         self.target_accounts: List[str] = [acc.strip() for acc in target_accounts_str.split(",") if acc.strip()]
         self.poll_interval_minutes: int = int(os.getenv("POLL_INTERVAL_MINUTES", "5"))
         self.engagement_check_hours: int = int(os.getenv("ENGAGEMENT_CHECK_HOURS", "2"))
+        
+        # Filtering V2 configuration
+        self.feature_filter_v2: bool = os.getenv("FEATURE_FILTER_V2", "true").lower() == "true"
+        self.approval_rate_target: float = float(os.getenv("APPROVAL_RATE_TARGET", "10.0"))
+        self.max_approvals_per_hour: int = int(os.getenv("MAX_APPROVALS_PER_HOUR", "20"))
+        self.max_per_author_6h: int = int(os.getenv("MAX_PER_AUTHOR_6H", "2"))
+        self.relevance_threshold: float = float(os.getenv("RELEVANCE_THRESHOLD", "80.0"))
+        self.enable_language_detection: bool = os.getenv("ENABLE_LANGUAGE_DETECTION", "false").lower() == "true"
 
 settings = Settings()
