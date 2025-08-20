@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  twitter-bot:
+    build: .
+    container_name: twitter-auto-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python twitter_bot.py start
+    
+    # Optional: Add health check
+    healthcheck:
+      test: ["CMD", "python", "twitter_bot.py", "test"]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 1m
+
+# Example for running with external Supabase
+# If you want to run a local PostgreSQL instead:
+#
+#  postgres:
+#    image: postgres:15
+#    container_name: twitter-bot-db
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: twitter_bot
+#      POSTGRES_USER: twitter_bot
+#      POSTGRES_PASSWORD: your_password
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+#    ports:
+#      - "5432:5432"
+#
+#volumes:
+#  postgres_data:

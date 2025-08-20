@@ -1,0 +1,3049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Bot Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e5e5e7;
+        }
+        
+        .card h3 {
+            color: #1d1d1f;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background-color: #34c759; }
+        .status-offline { background-color: #ff3b30; }
+        .status-error { background-color: #ff9500; }
+        
+        .button {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        
+        .button:hover {
+            background: #0051d0;
+            transform: translateY(-1px);
+        }
+        
+        .button:disabled {
+            background: #8e8e93;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-secondary {
+            background: #8e8e93;
+        }
+        
+        .button-secondary:hover {
+            background: #6d6d70;
+        }
+        
+        .button-danger {
+            background: #ff3b30;
+        }
+        
+        .button-danger:hover {
+            background: #d70015;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007aff;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .activity-log {
+            grid-column: 1 / -1;
+            max-height: 500px;
+            overflow-y: auto;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .log-entry {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .log-timestamp {
+            color: #8e8e93;
+            font-size: 0.85rem;
+            margin-right: 1rem;
+            min-width: 60px;
+        }
+        
+        .log-message {
+            flex: 1;
+        }
+        
+        .log-info { border-left: 3px solid #007aff; }
+        .log-success { border-left: 3px solid #34c759; }
+        .log-error { border-left: 3px solid #ff3b30; }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .config-label {
+            font-weight: 500;
+        }
+        
+        .config-value {
+            color: #666;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: #666;
+        }
+        
+        .tweet-card {
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        
+        .tweet-card:hover {
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+        }
+        
+        .tweet-text {
+            line-height: 1.5;
+            margin: 1rem 0;
+        }
+        
+        
+        .tweet-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tweet-author {
+            font-weight: bold;
+            color: #1d1d1f;
+        }
+        
+        .tweet-username {
+            color: #666;
+            margin-left: 0.5rem;
+        }
+        
+        .tweet-text {
+            margin: 1rem 0;
+            line-height: 1.5;
+        }
+        
+        .tweet-metrics {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .tweet-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .reply-button {
+            background: #1da1f2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .reply-button:hover {
+            background: #1991db;
+        }
+        
+        .like-button {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .like-button:hover {
+            background: #e6342a;
+        }
+        
+        .like-button.liked {
+            background: #34c759;
+        }
+        
+        .like-button.liked:hover {
+            background: #28a745;
+        }
+        
+        .retweet-button {
+            background: #34c759;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .retweet-button:hover {
+            background: #28a745;
+        }
+        
+        .retweet-button.retweeted {
+            background: #007aff;
+        }
+        
+        .retweet-button.retweeted:hover {
+            background: #0051d0;
+        }
+        
+        .action-button:disabled {
+            background: #8e8e93;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e5e7;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            color: #666;
+        }
+        
+        .modal-close:hover {
+            color: #1d1d1f;
+        }
+        
+        .reply-form {
+            margin: 1rem 0;
+        }
+        
+        .reply-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .character-counter {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .character-counter.warning {
+            color: #ff9500;
+        }
+        
+        .character-counter.error {
+            color: #ff3b30;
+        }
+        
+        .original-tweet {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 3px solid #1da1f2;
+        }
+        
+        .list-item {
+            background: #f9f9f9;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .list-info {
+            flex: 1;
+        }
+        
+        .list-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .list-url {
+            font-size: 0.9rem;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .list-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .reply-history-item {
+            background: #f9f9f9;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            border-left: 3px solid #34c759;
+        }
+        
+        .reply-history-item.failed {
+            border-left-color: #ff3b30;
+        }
+        
+        .reply-history-item.pending {
+            border-left-color: #ff9500;
+        }
+        
+        .user-reply-item {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            transition: all 0.2s ease;
+        }
+        
+        .user-reply-item:hover {
+            background: #f0f8ff;
+            border-color: #007aff;
+            transform: translateY(-1px);
+        }
+        
+        /* AI Suggestion Cards */
+        .ai-suggestion-card {
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        
+        .ai-suggestion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .ai-suggestion-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .ai-suggestion-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 3px solid #007aff;
+        }
+        
+        .ai-suggestion-text.editing {
+            background: white;
+            border: 1px solid #007aff;
+        }
+        
+        .ai-suggestion-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+        
+        .ai-suggestion-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .ai-suggestion-confidence {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .ai-reasoning {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        
+        .character-count {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        .character-count.warning {
+            color: #ff9500;
+        }
+        
+        .character-count.over-limit {
+            color: #ff3b30;
+            font-weight: bold;
+        }
+        
+        .button-small {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .button-edit {
+            background: #8e8e93;
+        }
+        
+        .button-edit:hover {
+            background: #6d6d70;
+        }
+        
+        .button-post {
+            background: #34c759;
+        }
+        
+        .button-post:hover {
+            background: #28a745;
+        }
+        
+        .button-regenerate {
+            background: #ff9500;
+        }
+        
+        .button-regenerate:hover {
+            background: #e0830a;
+        }
+        
+        /* Batch Processing Styles */
+        .batch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .batch-tweet-card {
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .batch-tweet-card:hover {
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+        }
+        
+        .batch-tweet-card.selected {
+            border-color: #007aff;
+            background: #f0f8ff;
+        }
+        
+        .batch-tweet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .batch-tweet-info h4 {
+            margin: 0;
+            color: #1d1d1f;
+            font-size: 1.1rem;
+        }
+        
+        .batch-tweet-info .username {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .batch-tweet-text {
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        
+        .batch-tweet-text.collapsed {
+            max-height: 4.5em; /* ~3 lines */
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .batch-tweet-text.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(to right, transparent, white 50%);
+            width: 30%;
+            height: 1.5em;
+        }
+        
+        .expand-btn {
+            background: none;
+            border: none;
+            color: #007aff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: underline;
+            padding: 0;
+            margin-left: 0.5rem;
+        }
+        
+        .expand-btn:hover {
+            color: #0056b3;
+        }
+        
+        .batch-reply-section {
+            margin-top: 1.5rem;
+        }
+        
+        .batch-reply-section h5 {
+            margin: 0 0 0.75rem 0;
+            color: #333;
+            font-size: 1rem;
+        }
+        
+        .batch-reply-item {
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        
+        .batch-reply-item.selected {
+            background: #e3f2fd;
+            border-color: #007aff;
+        }
+        
+        .batch-reply-checkbox {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
+        
+        .custom-reply-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .custom-reply-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .custom-reply-textarea:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+        
+        .custom-reply-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .character-counter {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .character-counter.over-limit {
+            color: #ff3b30;
+            font-weight: bold;
+        }
+        
+        .custom-reply-button {
+            background: #34c759;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .custom-reply-button:hover {
+            background: #28a745;
+        }
+        
+        .custom-reply-button:disabled {
+            background: #8e8e93;
+            cursor: not-allowed;
+        }
+        
+        .batch-reply-item.custom {
+            background: #f0f8ff;
+            border-color: #007aff;
+        }
+        
+        .batch-reply-item.custom .batch-reply-meta {
+            color: #007aff;
+            font-weight: 500;
+        }
+        
+        .batch-reply-text {
+            margin-right: 30px;
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+        
+        .batch-reply-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .batch-reply-confidence {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .batch-reply-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .batch-status {
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .batch-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .batch-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .batch-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .modal-content {
+                margin: 2% auto;
+                width: 95%;
+                padding: 1rem;
+            }
+            
+            .tweet-metrics {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+        }
+        
+        /* Tab Styles */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid #e5e5e7;
+            margin-bottom: 1rem;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-button.active {
+            color: #007aff;
+            border-bottom-color: #007aff;
+        }
+        
+        .tab-button:hover {
+            color: #007aff;
+            background: #f8f9ff;
+        }
+        
+        .tab-content {
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Custom Tone Styles */
+        .saved-tone-item {
+            background: #f8f9ff;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .saved-tone-item:hover {
+            border-color: #007aff;
+            background: #f0f8ff;
+        }
+        
+        .saved-tone-item.selected {
+            border-color: #007aff;
+            background: #e8f4ff;
+            box-shadow: 0 0 0 1px #007aff;
+        }
+        
+        .tone-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tone-description {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .tone-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Twitter Bot Dashboard</h1>
+            <p id="status-message">Loading bot status...</p>
+            <div id="action-loading" style="display: none; margin-top: 0.5rem; color: #007aff; font-weight: 500;"></div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>🎮 Manual Controls</h3>
+                <p>Manually trigger bot actions:</p>
+                <br>
+                <button class="button" onclick="triggerAction('test')">🔧 Test Connections</button>
+                <button class="button" onclick="triggerAction('poll')">🔄 Check for Tweets</button>
+                <button class="button button-secondary" onclick="triggerAction('engagement')">📈 Update Engagement</button>
+                <button class="button" onclick="validateTwitterAPI()">🐦 Validate Twitter API</button>
+            </div>
+            
+            <div class="card">
+                <h3>🤖 AI-Powered Tweet Analyzer</h3>
+                <p>Enter a tweet URL to generate AI reply suggestions:</p>
+                <br>
+                <div class="tweet-form">
+                    <input type="text" id="tweet-url" placeholder="Enter tweet URL (e.g., https://x.com/user/status/123456)" style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap;">
+                        <select id="reply-style" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;" onchange="handleStyleChange()">
+                            <option value="engaging_casual">Engaging & Casual</option>
+                            <option value="informative_professional">Informative & Professional</option>
+                            <option value="supportive_friendly">Supportive & Friendly</option>
+                            <option value="custom_only">Custom Only (ignore presets)</option>
+                        </select>
+                        <input type="text" id="custom-tone" placeholder="Custom tone (e.g., witty and sarcastic, technical expert)" style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <input type="number" id="max-replies" value="5" min="1" max="10" style="width: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Count">
+                    </div>
+                    <button class="button" onclick="analyzeTweet()">🔍 Analyze & Generate Replies</button>
+                </div>
+                <div class="loading" id="analyze-loading">⏳ Analyzing tweet and generating AI replies...</div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+            <h3>🐦 Analyzed Tweet</h3>
+            <div id="analyzed-tweet-container" style="display: none;">
+                <div id="original-tweet-card" class="tweet-card">
+                    <!-- Original tweet will be displayed here -->
+                </div>
+            </div>
+            <div id="no-tweet-message" style="text-align: center; color: #666; padding: 2rem;">
+                👆 Enter a tweet URL above to get started with AI-powered reply generation
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;" id="ai-suggestions-container" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>🤖 AI Reply Suggestions</h3>
+                <div>
+                    <button class="button button-secondary" onclick="regenerateAllReplies()">🔄 Regenerate All</button>
+                    <button class="button" onclick="postAllReplies()">🚀 Post All Replies</button>
+                </div>
+            </div>
+            <div id="ai-suggestions-list">
+                <!-- AI-generated reply suggestions will be displayed here -->
+            </div>
+        </div>
+        
+        <!-- NEW: Batch Reply Dashboard -->
+        <div class="card" style="margin-top: 40px;">
+            <h3>📋 Batch Reply Dashboard</h3>
+            <p>Load tweets from your Twitter list and generate AI replies for batch processing:</p>
+            <br>
+            <div class="batch-controls" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="batch-list-id" value="1957324919269929248" placeholder="Twitter List ID" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                <select id="batch-count" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="3">3 tweets</option>
+                    <option value="5" selected>5 tweets</option>
+                    <option value="7">7 tweets</option>
+                    <option value="10">10 tweets</option>
+                </select>
+                <select id="replies-per-tweet" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="1">1 reply/tweet</option>
+                    <option value="2">2 replies/tweet</option>
+                    <option value="3" selected>3 replies/tweet</option>
+                    <option value="4">4 replies/tweet</option>
+                    <option value="5">5 replies/tweet</option>
+                </select>
+                <select id="batch-reply-style" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;" onchange="handleBatchStyleChange()">
+                    <option value="engaging_casual" selected>Engaging & Casual</option>
+                    <option value="informative_professional">Informative & Professional</option>
+                    <option value="supportive_friendly">Supportive & Friendly</option>
+                    <option value="custom_only">Custom Only (ignore presets)</option>
+                </select>
+                <input type="text" id="batch-custom-tone" placeholder="Custom tone (optional)" style="min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <br><br>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="enable-filtering" checked>
+                        🎯 Smart Content Filtering
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <label for="relevance-threshold" style="font-size: 0.9rem;">Relevance Threshold:</label>
+                        <input type="range" id="relevance-threshold" min="50" max="100" value="70" 
+                               style="width: 100px;" oninput="updateThresholdDisplay()">
+                        <span id="threshold-display" style="font-size: 0.9rem; font-weight: bold;">70%</span>
+                    </div>
+                </div>
+                <div style="margin-top: 5px; font-size: 0.8rem; color: #666;">
+                    Filter tweets for AI news, tools, no-code, LLM content. Higher threshold = more selective.
+                </div>
+                <br>
+                <button class="button" onclick="loadBatchTweets()">📥 Load & Analyze Tweets</button>
+            </div>
+            <div class="loading" id="batch-loading" style="margin-top: 1rem;">
+                <div class="loading-header">
+                    <span id="loading-stage">⏳ Loading tweets and generating AI replies...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Batch Tweet Grid -->
+        <div id="batch-tweet-grid" style="display: none; margin-top: 20px;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>🔥 Batch Processing Results</h3>
+                    <div>
+                        <span id="batch-status" style="font-size: 0.9rem; color: #666;"></span>
+                        <button class="button button-secondary" onclick="selectAllReplies()">☑️ Select All</button>
+                        <button class="button button-secondary" onclick="deselectAllReplies()">☐ Deselect All</button>
+                        <button class="button" onclick="postSelectedReplies()">🚀 Post Selected</button>
+                        <button class="button button-danger" onclick="clearBatchResults()">🗑️ Clear</button>
+                    </div>
+                </div>
+                <div id="batch-tweets-container" class="batch-grid">
+                    <!-- Batch tweet cards will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid" style="margin-top: 20px;">
+            <div class="card">
+                <h3>🐦 Recent User Replies</h3>
+                <p>Your recent replies from Twitter (used for similarity checking):</p>
+                <div id="user-replies-container">
+                    <div class="loading" id="user-replies-loading">Loading recent replies...</div>
+                    <div id="user-replies-list"></div>
+                </div>
+                <button class="button button-secondary" onclick="loadUserReplies()" style="margin-top: 1rem;">🔄 Refresh Replies</button>
+            </div>
+            
+            <div class="card activity-log">
+                <h3>📝 Activity Log</h3>
+                <div id="activity-log-container">
+                    <div class="log-entry">
+                        <div class="log-timestamp">--:--</div>
+                        <div class="log-message">Loading activity log...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply Modal -->
+    <div id="reply-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💬 Reply to Tweet</h3>
+                <button class="modal-close" onclick="closeReplyModal()">&times;</button>
+            </div>
+            
+            <div class="original-tweet">
+                <div class="tweet-header">
+                    <span class="tweet-author" id="modal-tweet-author">@username</span>
+                </div>
+                <div class="tweet-text" id="modal-tweet-text">Original tweet text...</div>
+            </div>
+            
+            <div class="reply-form">
+                <textarea 
+                    id="reply-text" 
+                    class="reply-textarea" 
+                    placeholder="Type your reply here..."
+                    maxlength="280"
+                    oninput="updateCharacterCounter()"
+                ></textarea>
+                <div class="character-counter" id="character-counter">0/280</div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+                <button class="button button-secondary" onclick="closeReplyModal()">Cancel</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="button button-secondary" onclick="previewReply()">Preview</button>
+                    <button class="button" onclick="sendReply()" id="send-reply-btn">Send Reply</button>
+                </div>
+            </div>
+            
+            <div class="loading" id="reply-loading" style="margin-top: 1rem;">⏳ Sending reply...</div>
+        </div>
+    </div>
+
+    <!-- Custom Tone Modal -->
+    <div id="custom-tone-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Custom Tone Manager</h3>
+                <button class="modal-close" onclick="closeCustomToneModal()">&times;</button>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="tab-nav" style="border-bottom: 1px solid #e5e5e7; margin-bottom: 1rem;">
+                <button class="tab-button active" onclick="switchTab('saved')" id="saved-tab">Saved Tones</button>
+                <button class="tab-button" onclick="switchTab('create')" id="create-tab">Create New</button>
+            </div>
+            
+            <!-- Tab Content -->
+            <div id="saved-content" class="tab-content">
+                <div id="saved-tones-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Saved tones will be populated here -->
+                </div>
+                <div id="no-saved-tones" style="text-align: center; color: #666; padding: 2rem;">
+                    No saved tones yet. Create your first custom tone!
+                </div>
+            </div>
+            
+            <div id="create-content" class="tab-content" style="display: none;">
+                <div class="form-group">
+                    <label for="tone-name">Tone Name:</label>
+                    <input type="text" id="tone-name" placeholder="e.g., Elon Musk Style" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="form-group">
+                    <label for="tone-description">Tone Instructions:</label>
+                    <textarea id="tone-description" 
+                              placeholder="Describe how you want to sound (e.g., like Elon Musk tweeting about SpaceX - visionary, technical, optimistic about the future)"
+                              style="width: 100%; height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"
+                    ></textarea>
+                </div>
+                <button class="button" onclick="saveCustomTone()" id="save-tone-btn">Save Tone</button>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; border-top: 1px solid #e5e5e7; padding-top: 1rem;">
+                <button class="button button-secondary" onclick="closeCustomToneModal()">Cancel</button>
+                <button class="button" onclick="useSelectedTone()" id="use-tone-btn" disabled>Use Selected Tone</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusData = {};
+        let selectedCustomTone = null;
+        let currentCustomToneTarget = null; // 'single' or 'batch'
+        let currentTweets = [];
+        let currentOffset = 0;
+        let currentReplyTweet = null;
+        
+        // Update status every 10 seconds
+        setInterval(updateStatus, 10000);
+        updateStatus(); // Initial load
+        loadReplyHistory(); // Load reply history
+        loadUserReplies(); // Load recent user replies
+        
+        // Global variables for AI workflow
+        let currentAnalyzedTweet = null;
+        let currentAiSuggestions = [];
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                statusData = await response.json();
+                
+                // Update status message
+                const statusEl = document.getElementById('status-message');
+                let indicator = '<span class="status-indicator status-online"></span>';
+                
+                // Show different indicator based on status
+                if (statusData.status === 'error') {
+                    indicator = '<span class="status-indicator status-error"></span>';
+                } else if (statusData.current_operation) {
+                    indicator = '<span class="status-indicator status-online"></span>⚡ ';
+                } else if (statusData.rate_limit_status) {
+                    indicator = '<span class="status-indicator status-error"></span>⏱️ ';
+                }
+                
+                statusEl.innerHTML = indicator + statusData.status_message;
+                
+                // Update button states based on current operation
+                updateButtonStates();
+                
+                // Configuration and stats sections removed for cleaner UI
+                
+                // Update activity log
+                updateActivityLog(statusData.activity_log || []);
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+                document.getElementById('status-message').innerHTML = 
+                    '<span class="status-indicator status-error"></span>Error loading status';
+            }
+        }
+        
+        // Twitter List Management
+        async function importTwitterList() {
+            const listUrl = document.getElementById('list-url').value.trim();
+            const listName = document.getElementById('list-name').value.trim();
+            
+            if (!listUrl) {
+                alert('Please enter a Twitter list URL');
+                return;
+            }
+            
+            const loading = document.getElementById('import-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/lists/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        list_url: listUrl, 
+                        name: listName || `List ${new Date().toLocaleDateString()}`,
+                        max_items: 20
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Success! Imported ${result.new_tweets} new tweets from the list.`);
+                    document.getElementById('list-url').value = '';
+                    document.getElementById('list-name').value = '';
+                    loadTwitterLists();
+                    loadTweets();
+                } else {
+                    alert(`Error: ${result.detail}`);
+                }
+            } catch (error) {
+                alert(`Error importing list: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        async function loadTwitterLists() {
+            try {
+                const response = await fetch('/api/lists');
+                const result = await response.json();
+                
+                const container = document.getElementById('lists-list');
+                if (result.lists.length === 0) {
+                    container.innerHTML = '<p>No Twitter lists imported yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = result.lists.map(list => `
+                    <div class="list-item">
+                        <div class="list-info">
+                            <div class="list-name">${list.name}</div>
+                            <div class="list-url">${list.list_url}</div>
+                            <div style="font-size: 0.8rem; color: #999;">
+                                ${list.last_scraped ? `Last scraped: ${new Date(list.last_scraped).toLocaleDateString()}` : 'Never scraped'}
+                            </div>
+                        </div>
+                        <div class="list-actions">
+                            <button class="button button-secondary" onclick="refreshList(${list.id})">🔄 Refresh</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading Twitter lists:', error);
+            }
+        }
+        
+        async function refreshList(listId) {
+            alert('List refresh functionality coming soon!');
+        }
+        
+        // Tweet Loading and Display
+        async function loadTweets(offset = 0) {
+            const loading = document.getElementById('tweets-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/tweets?limit=10&offset=${offset}`);
+                const result = await response.json();
+                
+                if (offset === 0) {
+                    currentTweets = result.tweets;
+                } else {
+                    currentTweets = [...currentTweets, ...result.tweets];
+                }
+                
+                displayTweets();
+                currentOffset = offset + result.tweets.length;
+                
+            } catch (error) {
+                console.error('Error loading tweets:', error);
+                document.getElementById('tweets-grid').innerHTML = '<p>Error loading tweets.</p>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayTweets() {
+            const container = document.getElementById('tweets-grid');
+            
+            if (currentTweets.length === 0) {
+                container.innerHTML = '<p>No tweets found. Import a Twitter list to get started!</p>';
+                return;
+            }
+            
+            container.innerHTML = currentTweets.map(tweet => `
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <span class="tweet-author">${tweet.author_display_name || tweet.author_username}</span>
+                        <span class="tweet-username">@${tweet.author_username}</span>
+                    </div>
+                    
+                    <div class="tweet-text">${tweet.text}</div>
+                    
+                    <div class="tweet-metrics">
+                        <span>❤️ ${tweet.like_count || 0}</span>
+                        <span>🔄 ${tweet.retweet_count || 0}</span>
+                        <span>💬 ${tweet.reply_count || 0}</span>
+                        <span>📖 ${tweet.bookmark_count || 0}</span>
+                    </div>
+                    
+                    <div class="tweet-actions">
+                        <button class="reply-button" onclick="openReplyModal('${tweet.tweet_id}', '${tweet.author_username}', \`${tweet.text.replace(/`/g, '\\`')}\`)">
+                            💬 Reply
+                        </button>
+                        <button class="like-button" id="like-btn-${tweet.tweet_id}" onclick="likeTweet('${tweet.tweet_id}', '${tweet.url}')">
+                            ❤️ Like
+                        </button>
+                        <button class="retweet-button" id="retweet-btn-${tweet.tweet_id}" onclick="retweetTweet('${tweet.tweet_id}', '${tweet.url}')">
+                            🔄 Retweet
+                        </button>
+                        <a href="${tweet.url}" target="_blank" class="button button-secondary" style="text-decoration: none;">
+                            🔗 View Tweet
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function loadMoreTweets() {
+            loadTweets(currentOffset);
+        }
+        
+        // Reply Modal Functions
+        function openReplyModal(tweetId, username, tweetText) {
+            currentReplyTweet = { id: tweetId, username: username, text: tweetText };
+            
+            document.getElementById('modal-tweet-author').textContent = `@${username}`;
+            document.getElementById('modal-tweet-text').textContent = tweetText;
+            document.getElementById('reply-text').value = '';
+            document.getElementById('character-counter').textContent = '0/280';
+            document.getElementById('reply-loading').style.display = 'none';
+            
+            document.getElementById('reply-modal').style.display = 'block';
+        }
+        
+        function closeReplyModal() {
+            document.getElementById('reply-modal').style.display = 'none';
+            currentReplyTweet = null;
+        }
+        
+        function updateCharacterCounter() {
+            const textarea = document.getElementById('reply-text');
+            const counter = document.getElementById('character-counter');
+            const length = textarea.value.length;
+            
+            counter.textContent = `${length}/280`;
+            
+            counter.className = 'character-counter';
+            if (length > 250) {
+                counter.className += ' warning';
+            }
+            if (length > 280) {
+                counter.className += ' error';
+            }
+        }
+        
+        async function previewReply() {
+            if (!currentReplyTweet) return;
+            
+            const replyText = document.getElementById('reply-text').value.trim();
+            if (!replyText) {
+                alert('Please enter a reply text first.');
+                return;
+            }
+            
+            alert(`Preview:\n\nReplying to @${currentReplyTweet.username}\n"${currentReplyTweet.text}"\n\nYour reply:\n"${replyText}"`);
+        }
+        
+        async function sendReply() {
+            if (!currentReplyTweet) return;
+            
+            const replyText = document.getElementById('reply-text').value.trim();
+            if (!replyText) {
+                alert('Please enter a reply text first.');
+                return;
+            }
+            
+            if (replyText.length > 280) {
+                alert('Reply text is too long. Please keep it under 280 characters.');
+                return;
+            }
+            
+            const loading = document.getElementById('reply-loading');
+            const sendBtn = document.getElementById('send-reply-btn');
+            
+            loading.style.display = 'block';
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/replies/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tweet_id: currentReplyTweet.id,
+                        reply_text: replyText,
+                        target_username: currentReplyTweet.username
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Reply sent successfully via ${result.method_used}!`);
+                    closeReplyModal();
+                    loadReplyHistory();
+                } else {
+                    alert(`Failed to send reply: ${result.message}`);
+                }
+                
+            } catch (error) {
+                alert(`Error sending reply: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+                sendBtn.disabled = false;
+            }
+        }
+        
+        // Reply History
+        async function loadReplyHistory() {
+            const loading = document.getElementById('history-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/replies/history?limit=10');
+                const result = await response.json();
+                
+                const container = document.getElementById('reply-history-list');
+                
+                if (result.replies.length === 0) {
+                    container.innerHTML = '<p>No replies sent yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = result.replies.map(reply => `
+                    <div class="reply-history-item ${reply.status}">
+                        <div style="display: flex; justify-content: between; align-items: center;">
+                            <strong>Status: ${reply.status.toUpperCase()}</strong>
+                            <small style="color: #666;">
+                                ${reply.sent_at ? new Date(reply.sent_at).toLocaleString() : 
+                                  new Date(reply.created_at).toLocaleString()}
+                            </small>
+                        </div>
+                        <div style="margin: 0.5rem 0;">"${reply.reply_text}"</div>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            Method: ${reply.method_used} | Tweet ID: ${reply.tweet_id}
+                            ${reply.error_message ? `<br>Error: ${reply.error_message}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading reply history:', error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        // User Replies
+        async function loadUserReplies() {
+            const loading = document.getElementById('user-replies-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/replies/user-replies?count=10');
+                const result = await response.json();
+                
+                const container = document.getElementById('user-replies-list');
+                
+                if (result.replies.length === 0) {
+                    container.innerHTML = '<p>No recent replies found.</p>';
+                    return;
+                }
+                
+                container.innerHTML = result.replies.map(reply => `
+                    <div class="user-reply-item" onclick="window.open('${reply.url}', '_blank')" style="cursor: pointer;">
+                        <div style="display: flex; justify-content: between; align-items: center;">
+                            <strong>Reply to @${reply.reply_to_username}</strong>
+                            <small style="color: #666;">
+                                ${new Date(reply.created_at).toLocaleString()}
+                            </small>
+                        </div>
+                        <div style="margin: 0.5rem 0; font-style: italic;">"${reply.text}"</div>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            ❤️ ${reply.metrics.likes} | 🔄 ${reply.metrics.retweets} | 💬 ${reply.metrics.replies}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading user replies:', error);
+                document.getElementById('user-replies-list').innerHTML = '<p style="color: red;">Error loading replies. Using mock data for similarity checking.</p>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Tweet interaction functions
+        function openTweetInNewTab(event, tweetUrl) {
+            // Don't open if clicking on interactive elements
+            if (event.target.type === 'checkbox' || 
+                event.target.classList.contains('expand-btn') ||
+                event.target.closest('.batch-reply-section')) {
+                return;
+            }
+            
+            window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+        }
+        
+        function toggleTweetText(event, tweetTextId) {
+            event.stopPropagation(); // Prevent card click
+            
+            const tweetText = document.getElementById(tweetTextId);
+            const button = event.target;
+            
+            if (tweetText.classList.contains('collapsed')) {
+                tweetText.classList.remove('collapsed');
+                button.textContent = 'Read less';
+            } else {
+                tweetText.classList.add('collapsed');
+                button.textContent = 'Read more';
+            }
+        }
+        
+        // Original functions
+        function updateActivityLog(logs) {
+            const container = document.getElementById('activity-log-container');
+            
+            if (!container) {
+                return;
+            }
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<div class="log-entry"><div class="log-timestamp">--:--</div><div class="log-message">No recent activity</div></div>';
+                return;
+            }
+            
+            // Store current scroll position
+            const wasAtBottom = container.scrollTop >= (container.scrollHeight - container.offsetHeight - 50);
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry log-${log.level}">
+                    <div class="log-timestamp">${log.timestamp}</div>
+                    <div class="log-message">${log.message}</div>
+                </div>
+            `).join('');
+            
+            // Auto-scroll to bottom if user was already at bottom, or if new entries
+            if (wasAtBottom || logs.length > (container.lastLogCount || 0)) {
+                container.scrollTop = container.scrollHeight;
+            }
+            container.lastLogCount = logs.length;
+        }
+        
+        function updateButtonStates() {
+            const buttons = document.querySelectorAll('.button');
+            const loading = document.getElementById('action-loading');
+            
+            // Enable/disable buttons based on current operation
+            if (statusData.current_operation) {
+                buttons.forEach(btn => btn.disabled = true);
+                loading.style.display = 'block';
+                loading.textContent = `⏳ ${statusData.current_operation}...`;
+            } else {
+                buttons.forEach(btn => btn.disabled = false);
+                loading.style.display = 'none';
+            }
+            
+            // Show rate limit warning if applicable
+            if (statusData.rate_limit_status && !statusData.current_operation) {
+                const pollButton = document.querySelector('button[onclick="triggerAction(\'poll\')"]');
+                if (pollButton) {
+                    pollButton.disabled = true;
+                    pollButton.textContent = '⏱️ Rate Limited';
+                }
+            } else {
+                const pollButton = document.querySelector('button[onclick="triggerAction(\'poll\')"]');
+                if (pollButton && pollButton.textContent.includes('Rate Limited')) {
+                    pollButton.disabled = false;
+                    pollButton.textContent = '🔄 Check for Tweets';
+                }
+            }
+        }
+        
+        async function triggerAction(action) {
+            // Check if operation is already running
+            if (statusData.current_operation) {
+                alert(`Already ${statusData.current_operation}. Please wait for it to complete.`);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/trigger/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log(`${action} started:`, result.message);
+                    // Update status immediately to show the operation started
+                    setTimeout(updateStatus, 500);
+                } else {
+                    console.error(`${action} failed:`, result.detail || result.message);
+                    alert(`Action failed: ${result.detail || result.message}`);
+                }
+                
+            } catch (error) {
+                console.error(`Error triggering ${action}:`, error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        // AI-Powered Tweet Analysis Functions
+        async function analyzeTweet() {
+            const tweetUrl = document.getElementById('tweet-url').value.trim();
+            
+            if (!tweetUrl) {
+                alert('Please enter a tweet URL');
+                return;
+            }
+            
+            const loading = document.getElementById('analyze-loading');
+            loading.style.display = 'block';
+            
+            try {
+                // Step 1: Analyze tweet
+                const analyzeResponse = await fetch('/api/tweet/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tweet_url: tweetUrl })
+                });
+                
+                const analyzeResult = await analyzeResponse.json();
+                
+                if (!analyzeResponse.ok) {
+                    throw new Error(analyzeResult.detail || 'Failed to analyze tweet');
+                }
+                
+                currentAnalyzedTweet = analyzeResult.tweet;
+                displayAnalyzedTweet(currentAnalyzedTweet);
+                
+                // Step 2: Generate AI replies
+                const replyStyle = document.getElementById('reply-style').value;
+                const customTone = document.getElementById('custom-tone').value;
+                const maxReplies = parseInt(document.getElementById('max-replies').value);
+                
+                const generateResponse = await fetch('/api/replies/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tweet: currentAnalyzedTweet,
+                        options: {
+                            reply_style: replyStyle,
+                            custom_tone: customTone,
+                            max_replies: maxReplies,
+                            include_emoji: true,
+                            include_hashtags: false
+                        }
+                    })
+                });
+                
+                const generateResult = await generateResponse.json();
+                
+                if (!generateResponse.ok) {
+                    throw new Error(generateResult.detail || 'Failed to generate replies');
+                }
+                
+                currentAiSuggestions = generateResult.replies;
+                displayAiSuggestions(currentAiSuggestions);
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error('Analysis error:', error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayAnalyzedTweet(tweet) {
+            const container = document.getElementById('analyzed-tweet-container');
+            const noTweetMessage = document.getElementById('no-tweet-message');
+            const tweetCard = document.getElementById('original-tweet-card');
+            
+            // Show tweet container and hide no-tweet message
+            container.style.display = 'block';
+            noTweetMessage.style.display = 'none';
+            
+            // Make tweet card clickable and collapsible
+            const isLongTweet = tweet.text.length > 200;
+            const tweetTextId = 'single-tweet-text';
+            
+            // Populate tweet card
+            tweetCard.innerHTML = `
+                <div class="tweet-header">
+                    <span class="tweet-author">${tweet.author.display_name}</span>
+                    <span class="tweet-username">@${tweet.author.username}</span>
+                </div>
+                <div class="tweet-text ${isLongTweet ? 'collapsed' : ''}" id="${tweetTextId}">${tweet.text}</div>
+                ${isLongTweet ? `<button class="expand-btn" onclick="toggleTweetText(event, '${tweetTextId}')">Read more</button>` : ''}
+                <div class="tweet-metrics">
+                    <span>❤️ ${tweet.metrics.likes || 0}</span>
+                    <span>🔄 ${tweet.metrics.retweets || 0}</span>
+                    <span>💬 ${tweet.metrics.replies || 0}</span>
+                    <span>📖 ${tweet.metrics.bookmarks || 0}</span>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e5e7; font-size: 0.9rem; color: #666;">
+                    <div><strong>Tweet ID:</strong> ${tweet.id}</div>
+                    <div><strong>Created:</strong> ${new Date(tweet.created_at).toLocaleString()}</div>
+                    ${tweet.hashtags && tweet.hashtags.length > 0 ? `<div><strong>Hashtags:</strong> ${tweet.hashtags.join(', ')}</div>` : ''}
+                </div>
+            `;
+            
+            // Add click functionality to open tweet
+            tweetCard.onclick = function(event) {
+                openTweetInNewTab(event, tweet.url);
+            };
+            tweetCard.style.cursor = 'pointer';
+        }
+        
+        function displayAiSuggestions(suggestions) {
+            const container = document.getElementById('ai-suggestions-container');
+            const listContainer = document.getElementById('ai-suggestions-list');
+            
+            // Show suggestions container
+            container.style.display = 'block';
+            
+            // Generate suggestion cards
+            listContainer.innerHTML = suggestions.map((suggestion, index) => {
+                const confidenceClass = suggestion.confidence_score >= 0.8 ? 'confidence-high' : 
+                                       suggestion.confidence_score >= 0.6 ? 'confidence-medium' : 'confidence-low';
+                const confidenceText = suggestion.confidence_score >= 0.8 ? 'High' : 
+                                      suggestion.confidence_score >= 0.6 ? 'Medium' : 'Low';
+                
+                return `
+                    <div class="ai-suggestion-card" data-suggestion-id="${suggestion.id}" data-index="${index}">
+                        <div class="ai-suggestion-header">
+                            <div class="ai-suggestion-meta">
+                                <span><strong>Tone:</strong> ${suggestion.tone}</span>
+                                <span><strong>Style:</strong> ${suggestion.style}</span>
+                                <span class="ai-suggestion-confidence ${confidenceClass}">Confidence: ${confidenceText}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-suggestion-text" id="suggestion-text-${index}">
+                            ${suggestion.text}
+                        </div>
+                        
+                        <div class="character-count" id="char-count-${index}">
+                            ${suggestion.character_count}/280 characters
+                        </div>
+                        
+                        <div class="ai-reasoning">
+                            💡 ${suggestion.reasoning}
+                        </div>
+                        
+                        <div class="ai-suggestion-actions">
+                            <button class="button button-small button-edit" onclick="editSuggestion(${index})">
+                                ✏️ Edit
+                            </button>
+                            <button class="button button-small button-post" onclick="postSingleSuggestion(${index})">
+                                🚀 Post
+                            </button>
+                            <button class="button button-small button-regenerate" onclick="regenerateSuggestion(${index})">
+                                🔄 Regenerate
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function editSuggestion(index) {
+            const textElement = document.getElementById(`suggestion-text-${index}`);
+            const currentText = currentAiSuggestions[index].text;
+            
+            // Replace text with textarea
+            textElement.innerHTML = `
+                <textarea class="ai-suggestion-textarea" id="edit-textarea-${index}">${currentText}</textarea>
+                <div style="margin-top: 0.5rem;">
+                    <button class="button button-small" onclick="saveSuggestionEdit(${index})">💾 Save</button>
+                    <button class="button button-small button-secondary" onclick="cancelSuggestionEdit(${index})">❌ Cancel</button>
+                </div>
+            `;
+            
+            textElement.classList.add('editing');
+            
+            // Focus textarea
+            document.getElementById(`edit-textarea-${index}`).focus();
+        }
+        
+        function saveSuggestionEdit(index) {
+            const textarea = document.getElementById(`edit-textarea-${index}`);
+            const newText = textarea.value.trim();
+            
+            if (!newText) {
+                alert('Reply text cannot be empty');
+                return;
+            }
+            
+            if (newText.length > 280) {
+                alert('Reply text must be 280 characters or less');
+                return;
+            }
+            
+            // Update suggestion
+            currentAiSuggestions[index].text = newText;
+            currentAiSuggestions[index].character_count = newText.length;
+            
+            // Update display
+            const textElement = document.getElementById(`suggestion-text-${index}`);
+            textElement.innerHTML = newText;
+            textElement.classList.remove('editing');
+            
+            // Update character count
+            const charCountElement = document.getElementById(`char-count-${index}`);
+            charCountElement.textContent = `${newText.length}/280 characters`;
+            charCountElement.className = 'character-count' + 
+                (newText.length > 250 ? ' warning' : '') + 
+                (newText.length > 280 ? ' over-limit' : '');
+        }
+        
+        function cancelSuggestionEdit(index) {
+            const textElement = document.getElementById(`suggestion-text-${index}`);
+            textElement.innerHTML = currentAiSuggestions[index].text;
+            textElement.classList.remove('editing');
+        }
+        
+        async function postSingleSuggestion(index) {
+            if (!currentAnalyzedTweet || !currentAiSuggestions[index]) {
+                alert('No suggestion available to post');
+                return;
+            }
+            
+            const suggestion = currentAiSuggestions[index];
+            
+            if (suggestion.text.length > 280) {
+                alert('Reply text is too long. Please edit it to be 280 characters or less.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/replies/post-single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tweet_id: currentAnalyzedTweet.id,
+                        reply_text: suggestion.text,
+                        target_username: currentAnalyzedTweet.author.username
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Reply posted successfully via ${result.method_used}!`);
+                    loadReplyHistory(); // Refresh reply history
+                } else {
+                    alert(`Failed to post reply: ${result.message}`);
+                }
+                
+            } catch (error) {
+                alert(`Error posting reply: ${error.message}`);
+                console.error('Post error:', error);
+            }
+        }
+        
+        async function regenerateAllReplies() {
+            if (!currentAnalyzedTweet) {
+                alert('No tweet analyzed yet');
+                return;
+            }
+            
+            const loading = document.getElementById('analyze-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const replyStyle = document.getElementById('reply-style').value;
+                const customTone = document.getElementById('custom-tone').value;
+                const maxReplies = parseInt(document.getElementById('max-replies').value);
+                
+                const response = await fetch('/api/replies/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tweet: currentAnalyzedTweet,
+                        options: {
+                            reply_style: replyStyle,
+                            custom_tone: customTone,
+                            max_replies: maxReplies,
+                            include_emoji: true,
+                            include_hashtags: false
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    currentAiSuggestions = result.replies;
+                    displayAiSuggestions(currentAiSuggestions);
+                } else {
+                    alert(`Failed to regenerate replies: ${result.detail}`);
+                }
+                
+            } catch (error) {
+                alert(`Error regenerating replies: ${error.message}`);
+                console.error('Regeneration error:', error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        async function postAllReplies() {
+            if (!currentAnalyzedTweet || !currentAiSuggestions.length) {
+                alert('No suggestions available to post');
+                return;
+            }
+            
+            const validSuggestions = currentAiSuggestions.filter(s => s.text.length <= 280);
+            
+            if (validSuggestions.length === 0) {
+                alert('No valid suggestions to post (all are over 280 characters)');
+                return;
+            }
+            
+            if (!confirm(`Post all ${validSuggestions.length} replies? This will post them with 5-second delays.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/replies/post-bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tweet_id: currentAnalyzedTweet.id,
+                        replies: validSuggestions.map(s => s.text),
+                        target_username: currentAnalyzedTweet.author.username,
+                        delay_seconds: 5
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Successfully posted ${result.successful_posts} out of ${result.total_replies} replies!`);
+                    loadReplyHistory(); // Refresh reply history
+                } else {
+                    alert(`Bulk posting failed: ${result.message || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                alert(`Error posting bulk replies: ${error.message}`);
+                console.error('Bulk post error:', error);
+            }
+        }
+        
+        async function regenerateSuggestion(index) {
+            // For now, just regenerate all - could be enhanced to regenerate single
+            alert('Regenerating single suggestions coming soon! Use "Regenerate All" for now.');
+        }
+        
+        // Legacy functions (kept for backwards compatibility)
+        async function loadTwitterLists() {
+            // Not used in AI workflow but kept for compatibility
+        }
+        
+        async function loadTweets() {
+            // Not used in AI workflow but kept for compatibility  
+        }
+        
+        async function importTwitterList() {
+            // Not used in AI workflow but kept for compatibility
+        }
+        
+        // Filtering Functions
+        function updateThresholdDisplay() {
+            const threshold = document.getElementById('relevance-threshold').value;
+            document.getElementById('threshold-display').textContent = threshold + '%';
+        }
+
+        // Custom Reply Functions
+        function updateCharacterCount(tweetIndex) {
+            const textarea = document.getElementById(`custom-reply-${tweetIndex}`);
+            const counter = document.getElementById(`char-counter-${tweetIndex}`);
+            const button = document.getElementById(`add-custom-${tweetIndex}`);
+            
+            const currentLength = textarea.value.length;
+            counter.textContent = `${currentLength}/280`;
+            
+            if (currentLength > 280) {
+                counter.classList.add('over-limit');
+                button.disabled = true;
+            } else {
+                counter.classList.remove('over-limit');
+                button.disabled = currentLength === 0;
+            }
+        }
+        
+        function addCustomReply(tweetIndex) {
+            const textarea = document.getElementById(`custom-reply-${tweetIndex}`);
+            const customRepliesContainer = document.getElementById(`custom-replies-${tweetIndex}`);
+            const replyText = textarea.value.trim();
+            
+            if (!replyText || replyText.length > 280) {
+                alert('Please enter a valid reply (1-280 characters)');
+                return;
+            }
+            
+            // Initialize custom_replies array if it doesn't exist
+            if (!batchData[tweetIndex].custom_replies) {
+                batchData[tweetIndex].custom_replies = [];
+            }
+            
+            // Create custom reply object
+            const customReply = {
+                id: `custom_reply_${tweetIndex}_${Date.now()}`,
+                text: replyText,
+                type: 'custom',
+                created_at: new Date().toISOString()
+            };
+            
+            // Add to data structure
+            batchData[tweetIndex].custom_replies.push(customReply);
+            
+            // Create HTML for the custom reply
+            const customReplyIndex = batchData[tweetIndex].custom_replies.length - 1;
+            const customReplyHtml = `
+                <div class="batch-reply-item custom" data-reply-id="${customReply.id}">
+                    <input type="checkbox" class="batch-reply-checkbox" 
+                           id="custom-reply-${tweetIndex}-${customReplyIndex}"
+                           data-tweet-index="${tweetIndex}" 
+                           data-reply-type="custom"
+                           data-custom-reply-index="${customReplyIndex}">
+                    <div class="batch-reply-text">${customReply.text}</div>
+                    <div class="batch-reply-meta">
+                        <span>✏️ Custom Reply</span>
+                        <button class="custom-reply-button" style="padding: 2px 6px; font-size: 0.7rem; background: #ff3b30;" 
+                                onclick="removeCustomReply(${tweetIndex}, ${customReplyIndex})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to DOM
+            customRepliesContainer.insertAdjacentHTML('beforeend', customReplyHtml);
+            
+            // Clear textarea
+            textarea.value = '';
+            updateCharacterCount(tweetIndex);
+            
+            // Add event handler for the new checkbox
+            const newCheckbox = document.getElementById(`custom-reply-${tweetIndex}-${customReplyIndex}`);
+            newCheckbox.addEventListener('change', function() {
+                const replyItem = this.closest('.batch-reply-item');
+                if (this.checked) {
+                    replyItem.classList.add('selected');
+                } else {
+                    replyItem.classList.remove('selected');
+                }
+                updateBatchStatus();
+            });
+            
+            // Update batch status
+            updateBatchStatus();
+        }
+        
+        function removeCustomReply(tweetIndex, customReplyIndex) {
+            if (!confirm('Remove this custom reply?')) {
+                return;
+            }
+            
+            // Remove from data structure
+            batchData[tweetIndex].custom_replies.splice(customReplyIndex, 1);
+            
+            // Re-render custom replies section
+            renderCustomReplies(tweetIndex);
+            
+            updateBatchStatus();
+        }
+        
+        function renderCustomReplies(tweetIndex) {
+            const customRepliesContainer = document.getElementById(`custom-replies-${tweetIndex}`);
+            const customReplies = batchData[tweetIndex].custom_replies || [];
+            
+            customRepliesContainer.innerHTML = customReplies.map((reply, index) => `
+                <div class="batch-reply-item custom" data-reply-id="${reply.id}">
+                    <input type="checkbox" class="batch-reply-checkbox" 
+                           id="custom-reply-${tweetIndex}-${index}"
+                           data-tweet-index="${tweetIndex}" 
+                           data-reply-type="custom"
+                           data-custom-reply-index="${index}">
+                    <div class="batch-reply-text">${reply.text}</div>
+                    <div class="batch-reply-meta">
+                        <span>✏️ Custom Reply</span>
+                        <button class="custom-reply-button" style="padding: 2px 6px; font-size: 0.7rem; background: #ff3b30;" 
+                                onclick="removeCustomReply(${tweetIndex}, ${index})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Re-add event handlers
+            customReplies.forEach((reply, index) => {
+                const checkbox = document.getElementById(`custom-reply-${tweetIndex}-${index}`);
+                if (checkbox) {
+                    checkbox.addEventListener('change', function() {
+                        const replyItem = this.closest('.batch-reply-item');
+                        if (this.checked) {
+                            replyItem.classList.add('selected');
+                        } else {
+                            replyItem.classList.remove('selected');
+                        }
+                        updateBatchStatus();
+                    });
+                }
+            });
+        }
+
+        // Batch Processing Functions
+        let batchData = [];
+        
+        async function loadBatchTweets() {
+            const listId = document.getElementById('batch-list-id').value.trim();
+            const count = parseInt(document.getElementById('batch-count').value);
+            const repliesPerTweet = parseInt(document.getElementById('replies-per-tweet').value);
+            const replyStyle = document.getElementById('batch-reply-style').value;
+            const customTone = document.getElementById('batch-custom-tone').value;
+            const enableFiltering = document.getElementById('enable-filtering').checked;
+            const relevanceThreshold = parseInt(document.getElementById('relevance-threshold').value);
+            
+            if (!listId) {
+                alert('Please enter a Twitter List ID');
+                return;
+            }
+            
+            const loading = document.getElementById('batch-loading');
+            const gridContainer = document.getElementById('batch-tweet-grid');
+            const loadingStage = document.getElementById('loading-stage');
+            
+            loading.style.display = 'block';
+            gridContainer.style.display = 'none';
+            
+            // Start activity monitoring during batch processing
+            const activityMonitor = startBatchActivityMonitor();
+            
+            // Update loading stage
+            loadingStage.textContent = 'Fetching tweets from list...';
+            
+            try {
+                const response = await fetch('/api/lists/batch-process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        list_id: listId,
+                        count: count,
+                        replies_per_tweet: repliesPerTweet,
+                        reply_style: replyStyle,
+                        custom_tone: customTone,
+                        enable_filtering: enableFiltering,
+                        relevance_threshold: relevanceThreshold
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to process batch tweets');
+                }
+                
+                batchData = result.batch_results;
+                displayBatchResults(result);
+                
+            } catch (error) {
+                loadingStage.textContent = '❌ Error occurred during processing';
+                alert(`Error: ${error.message}`);
+                console.error('Batch processing error:', error);
+            } finally {
+                clearInterval(activityMonitor);
+                // Hide loading immediately when done
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Activity monitoring for batch operations
+        function startBatchActivityMonitor() {
+            let lastActivityCount = 0;
+            
+            return setInterval(async () => {
+                try {
+                    const response = await fetch('/api/status');
+                    const statusData = await response.json();
+                    
+                    // Update activity log in main dashboard
+                    updateActivityLog(statusData.activity_log || []);
+                    
+                    if (statusData.activity_log && statusData.activity_log.length > lastActivityCount) {
+                        lastActivityCount = statusData.activity_log.length;
+                        
+                        // Update loading stage based on latest activity
+                        if (statusData.activity_log.length > 0) {
+                            const latestEntry = statusData.activity_log[0]; // Most recent entry is first
+                            updateLoadingStage(latestEntry.message);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching activity updates:', error);
+                }
+            }, 1000); // Check every second
+        }
+        
+        
+        function updateLoadingStage(message) {
+            const loadingStage = document.getElementById('loading-stage');
+            if (!loadingStage) return;
+            
+            // Show the raw activity message without prefix
+            loadingStage.textContent = message;
+        }
+        
+        function displayBatchResults(result) {
+            const gridContainer = document.getElementById('batch-tweet-grid');
+            const statusEl = document.getElementById('batch-status');
+            const tweetsContainer = document.getElementById('batch-tweets-container');
+            
+            // Show results container
+            gridContainer.style.display = 'block';
+            
+            // Update status with filtering and backfill info
+            let statusText = `Processed ${result.successful_generations}/${result.relevant_tweets || result.total_tweets_fetched} tweets successfully`;
+            if (result.filtered_by_history && result.filtered_by_history > 0) {
+                statusText += ` (${result.filtered_by_history} already replied to)`;
+            }
+            if (result.filtering_enabled) {
+                statusText += ` (${result.filtered_out} filtered out, ${result.relevance_threshold}% threshold)`;
+            }
+            if (result.backfill_stats && result.backfill_stats.needed_backfill) {
+                statusText += ` 🔄 Auto-fetched ${result.total_tweets_fetched} tweets to find ${result.relevant_tweets} relevant ones`;
+            }
+            statusEl.textContent = statusText;
+            
+            // Add backfill stats if available
+            if (result.backfill_stats && result.filtering_enabled) {
+                const backfill = result.backfill_stats;
+                const fetch = result.fetch_stats;
+                
+                let backfillHtml = '';
+                
+                if (backfill.needed_backfill) {
+                    backfillHtml = `
+                        <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9rem;">
+                            <strong>🔄 Smart Backfill Results:</strong><br>
+                            <div style="margin-top: 5px;">
+                                🎯 Target: <strong>${backfill.target_count}</strong> relevant tweets<br>
+                                📥 Total fetched: <strong>${result.total_tweets_fetched}</strong> tweets in <strong>${fetch.attempts}</strong> attempts<br>
+                                ✅ Delivered: <strong>${backfill.final_relevant_count}</strong> relevant tweets${backfill.final_relevant_count > backfill.target_count ? ` <span style="color: #ff6b00;">🎉 (+${backfill.final_relevant_count - backfill.target_count} bonus!)</span>` : ''}<br>
+                                📊 Efficiency: <strong>${Math.round((backfill.final_relevant_count / result.total_tweets_fetched) * 100)}%</strong> success rate<br>
+                                ${fetch.batch_sizes.length > 1 ? `🔢 Batch sizes: <strong>${fetch.batch_sizes.join(', ')}</strong>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    backfillHtml = `
+                        <div style="background: #f0f8ff; border: 1px solid #007aff; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9rem;">
+                            <strong>✨ Perfect Match:</strong> Found <strong>${backfill.final_relevant_count}</strong> relevant tweets from initial fetch of <strong>${result.total_tweets_fetched}</strong> tweets${backfill.final_relevant_count > backfill.target_count ? ` <span style="color: #ff6b00;">🎉 (+${backfill.final_relevant_count - backfill.target_count} bonus tweets!)</span>` : ''}
+                        </div>
+                    `;
+                }
+                
+                statusEl.insertAdjacentHTML('afterend', backfillHtml);
+            }
+            
+            // Add filtering stats if available
+            if (result.filtering_stats && result.filtering_enabled) {
+                const stats = result.filtering_stats;
+                const statsHtml = `
+                    <div style="background: #f0f8ff; border: 1px solid #007aff; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9rem;">
+                        <strong>🎯 Content Analysis Results:</strong><br>
+                        <div style="margin-top: 5px;">
+                            📊 <strong>${stats.relevant_tweets}/${stats.total_tweets}</strong> tweets passed filter (${Math.round(stats.relevance_rate)}% relevance rate)<br>
+                            🎯 Average relevance score: <strong>${stats.average_relevance_score}%</strong><br>
+                            ⭐ Average value-add potential: <strong>${stats.average_value_add_potential}%</strong><br>
+                            ${stats.category_breakdown && Object.keys(stats.category_breakdown).length > 0 ? 
+                                `📂 Categories found: <strong>${Object.entries(stats.category_breakdown).map(([cat, count]) => `${cat} (${count})`).join(', ')}</strong>` : 
+                                ''}
+                        </div>
+                    </div>
+                `;
+                statusEl.insertAdjacentHTML('afterend', statsHtml);
+            }
+            
+            // Generate batch tweet cards
+            tweetsContainer.innerHTML = batchData.map((item, index) => {
+                const tweet = item.tweet;
+                const replies = item.ai_replies || [];
+                const status = item.status;
+                
+                const statusClass = status === 'ready' ? 'success' : 'error';
+                const statusText = status === 'ready' ? '✅ Ready' : '❌ Failed';
+                
+                const isLongTweet = tweet.text.length > 200;
+                const tweetTextId = `tweet-text-${index}`;
+                
+                return `
+                    <div class="batch-tweet-card" data-tweet-index="${index}" data-tweet-url="${tweet.url}" onclick="openTweetInNewTab(event, '${tweet.url}')">
+                        <div class="batch-tweet-header">
+                            <div class="batch-tweet-info">
+                                <h4>${tweet.author.display_name}</h4>
+                                <div class="username">@${tweet.author.username}</div>
+                            </div>
+                            <div class="batch-status ${statusClass}">${statusText}</div>
+                        </div>
+                        
+                        <div class="batch-tweet-text ${isLongTweet ? 'collapsed' : ''}" id="${tweetTextId}">
+                            ${tweet.text}
+                        </div>
+                        ${isLongTweet ? `<button class="expand-btn" onclick="toggleTweetText(event, '${tweetTextId}')">Read more</button>` : ''}
+                        
+                        <div class="tweet-metrics">
+                            <span>❤️ ${tweet.metrics.likes || 0}</span>
+                            <span>🔄 ${tweet.metrics.retweets || 0}</span>
+                            <span>💬 ${tweet.metrics.replies || 0}</span>
+                        </div>
+                        
+                        ${replies.length > 0 ? `
+                            <div class="batch-reply-section">
+                                <h5>🤖 AI Reply Suggestions (${replies.length})</h5>
+                                ${replies.map((reply, replyIndex) => `
+                                    <div class="batch-reply-item" data-reply-id="${reply.id}">
+                                        <input type="checkbox" class="batch-reply-checkbox" 
+                                               id="reply-${index}-${replyIndex}"
+                                               data-tweet-index="${index}" 
+                                               data-reply-index="${replyIndex}">
+                                        <div class="batch-reply-text">${reply.text}</div>
+                                        <div class="batch-reply-meta">
+                                            <span>Tone: ${reply.tone} | Style: ${reply.style}</span>
+                                            <span class="batch-reply-confidence confidence-${reply.confidence_score >= 0.8 ? 'high' : reply.confidence_score >= 0.6 ? 'medium' : 'low'}">
+                                                Confidence: ${Math.round(reply.confidence_score * 100)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                
+                                <!-- Custom Reply Section -->
+                                <div class="custom-reply-section">
+                                    <h6 style="margin: 0 0 0.5rem 0; color: #007aff; font-size: 0.9rem;">✏️ Write Custom Reply</h6>
+                                    <textarea class="custom-reply-textarea" 
+                                              id="custom-reply-${index}"
+                                              placeholder="Write your own reply to this tweet..."
+                                              oninput="updateCharacterCount(${index})"
+                                              maxlength="300"></textarea>
+                                    <div class="custom-reply-controls">
+                                        <span class="character-counter" id="char-counter-${index}">0/280</span>
+                                        <button class="custom-reply-button" 
+                                                id="add-custom-${index}"
+                                                onclick="addCustomReply(${index})">
+                                            ➕ Add Custom Reply
+                                        </button>
+                                    </div>
+                                    <div id="custom-replies-${index}">
+                                        <!-- Custom replies will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="batch-status error">
+                                No AI replies generated${item.error ? ': ' + item.error : ''}
+                            </div>
+                            
+                            <!-- Custom Reply Section for Failed AI Generation -->
+                            <div class="custom-reply-section">
+                                <h6 style="margin: 0 0 0.5rem 0; color: #007aff; font-size: 0.9rem;">✏️ Write Custom Reply</h6>
+                                <textarea class="custom-reply-textarea" 
+                                          id="custom-reply-${index}"
+                                          placeholder="Write your own reply to this tweet..."
+                                          oninput="updateCharacterCount(${index})"
+                                          maxlength="300"></textarea>
+                                <div class="custom-reply-controls">
+                                    <span class="character-counter" id="char-counter-${index}">0/280</span>
+                                    <button class="custom-reply-button" 
+                                            id="add-custom-${index}"
+                                            onclick="addCustomReply(${index})">
+                                        ➕ Add Custom Reply
+                                    </button>
+                                </div>
+                                <div id="custom-replies-${index}">
+                                    <!-- Custom replies will be added here -->
+                                </div>
+                            </div>
+                        `}
+                        
+                        <!-- Tweet Interaction Actions -->
+                        <div class="tweet-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                            <button class="like-button" id="batch-like-btn-${tweet.id}" onclick="likeTweet('${tweet.id}', '${tweet.url}', event)">
+                                ❤️ Like
+                            </button>
+                            <button class="retweet-button" id="batch-retweet-btn-${tweet.id}" onclick="retweetTweet('${tweet.id}', '${tweet.url}', event)">
+                                🔄 Retweet
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add click handlers for reply selection
+            addBatchReplyHandlers();
+        }
+        
+        function addBatchReplyHandlers() {
+            // Add click handlers for reply checkboxes
+            document.querySelectorAll('.batch-reply-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const replyItem = this.closest('.batch-reply-item');
+                    if (this.checked) {
+                        replyItem.classList.add('selected');
+                    } else {
+                        replyItem.classList.remove('selected');
+                    }
+                    updateBatchStatus();
+                });
+            });
+        }
+        
+        function selectAllReplies() {
+            document.querySelectorAll('.batch-reply-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.closest('.batch-reply-item').classList.add('selected');
+            });
+            updateBatchStatus();
+        }
+        
+        function deselectAllReplies() {
+            document.querySelectorAll('.batch-reply-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.batch-reply-item').classList.remove('selected');
+            });
+            updateBatchStatus();
+        }
+        
+        function updateBatchStatus() {
+            const selected = document.querySelectorAll('.batch-reply-checkbox:checked').length;
+            const total = document.querySelectorAll('.batch-reply-checkbox').length;
+            const statusEl = document.getElementById('batch-status');
+            
+            if (selected > 0) {
+                statusEl.textContent = `${selected}/${total} replies selected for posting`;
+            } else {
+                statusEl.textContent = `0/${total} replies selected`;
+            }
+        }
+        
+        async function postSelectedReplies() {
+            const selectedCheckboxes = document.querySelectorAll('.batch-reply-checkbox:checked');
+            
+            if (selectedCheckboxes.length === 0) {
+                alert('Please select at least one reply to post');
+                return;
+            }
+            
+            if (!confirm(`Post ${selectedCheckboxes.length} selected replies?`)) {
+                return;
+            }
+            
+            let successCount = 0;
+            let failedCount = 0;
+            
+            for (const checkbox of selectedCheckboxes) {
+                const tweetIndex = parseInt(checkbox.dataset.tweetIndex);
+                const tweet = batchData[tweetIndex].tweet;
+                let reply;
+                let replyType = 'AI';
+                
+                // Determine if this is an AI reply or custom reply
+                if (checkbox.dataset.replyType === 'custom') {
+                    const customReplyIndex = parseInt(checkbox.dataset.customReplyIndex);
+                    reply = batchData[tweetIndex].custom_replies[customReplyIndex];
+                    replyType = 'Custom';
+                } else {
+                    const replyIndex = parseInt(checkbox.dataset.replyIndex);
+                    reply = batchData[tweetIndex].ai_replies[replyIndex];
+                }
+                
+                try {
+                    console.log(`Posting ${replyType} reply:`, reply.text);
+                    
+                    const response = await fetch('/api/replies/post-single', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tweet_id: tweet.id,
+                            reply_text: reply.text,
+                            target_username: tweet.author.username
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        successCount++;
+                        // Mark as posted
+                        const replyItem = checkbox.closest('.batch-reply-item');
+                        replyItem.style.opacity = '0.6';
+                        replyItem.classList.add('posted');
+                        checkbox.disabled = true;
+                        
+                        // Add posted indicator
+                        const meta = replyItem.querySelector('.batch-reply-meta');
+                        if (!meta.querySelector('.posted-indicator')) {
+                            meta.insertAdjacentHTML('beforeend', ' <span class="posted-indicator" style="color: #34c759;">✅ Posted</span>');
+                        }
+                    } else {
+                        failedCount++;
+                        console.error(`Failed to post reply: ${result.message}`);
+                        
+                        // Add failed indicator
+                        const meta = checkbox.closest('.batch-reply-item').querySelector('.batch-reply-meta');
+                        if (!meta.querySelector('.failed-indicator')) {
+                            meta.insertAdjacentHTML('beforeend', ' <span class="failed-indicator" style="color: #ff3b30;">❌ Failed</span>');
+                        }
+                    }
+                    
+                    // Small delay between posts
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                } catch (error) {
+                    failedCount++;
+                    console.error('Error posting reply:', error);
+                    
+                    // Add error indicator
+                    const meta = checkbox.closest('.batch-reply-item').querySelector('.batch-reply-meta');
+                    if (!meta.querySelector('.error-indicator')) {
+                        meta.insertAdjacentHTML('beforeend', ' <span class="error-indicator" style="color: #ff3b30;">❌ Error</span>');
+                    }
+                }
+            }
+            
+            alert(`Batch posting completed: ${successCount} successful, ${failedCount} failed`);
+            loadReplyHistory(); // Refresh reply history
+        }
+        
+        function clearBatchResults() {
+            if (confirm('Clear all batch results?')) {
+                document.getElementById('batch-tweet-grid').style.display = 'none';
+                batchData = [];
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('reply-modal');
+            if (event.target === modal) {
+                closeReplyModal();
+            }
+        }
+        
+        // Handle style change for single tweet analysis
+        function handleStyleChange() {
+            const style = document.getElementById('reply-style').value;
+            const customToneField = document.getElementById('custom-tone');
+            
+            if (style === 'custom_only') {
+                // Open custom tone modal instead of showing inline field
+                currentCustomToneTarget = 'single';
+                openCustomToneModal();
+            } else {
+                customToneField.placeholder = 'Custom tone (e.g., witty and sarcastic, technical expert)';
+                customToneField.style.borderColor = '#ddd';
+                customToneField.style.background = 'white';
+                customToneField.required = false;
+                customToneField.style.display = 'block';
+            }
+        }
+        
+        // Handle style change for batch processing
+        function handleBatchStyleChange() {
+            const style = document.getElementById('batch-reply-style').value;
+            const customToneField = document.getElementById('batch-custom-tone');
+            
+            if (style === 'custom_only') {
+                // Open custom tone modal instead of showing inline field
+                currentCustomToneTarget = 'batch';
+                openCustomToneModal();
+            } else {
+                customToneField.placeholder = 'Custom tone (optional)';
+                customToneField.style.borderColor = '#ddd';
+                customToneField.style.background = 'white';
+                customToneField.required = false;
+                customToneField.style.display = 'block';
+            }
+        }
+        
+        // Custom Tone Modal Functions
+        function openCustomToneModal() {
+            document.getElementById('custom-tone-modal').style.display = 'block';
+            loadSavedTones();
+            switchTab('saved');
+        }
+        
+        function closeCustomToneModal() {
+            document.getElementById('custom-tone-modal').style.display = 'none';
+            selectedCustomTone = null;
+            // Reset form
+            document.getElementById('tone-name').value = '';
+            document.getElementById('tone-description').value = '';
+        }
+        
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            document.getElementById(tab + '-content').style.display = 'block';
+            
+            // Update use button state
+            updateUseButtonState();
+        }
+        
+        function loadSavedTones() {
+            const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+            const container = document.getElementById('saved-tones-list');
+            const noTonesMsg = document.getElementById('no-saved-tones');
+            
+            if (savedTones.length === 0) {
+                container.innerHTML = '';
+                noTonesMsg.style.display = 'block';
+            } else {
+                noTonesMsg.style.display = 'none';
+                container.innerHTML = savedTones.map((tone, index) => `
+                    <div class="saved-tone-item" onclick="selectTone(${index})">
+                        <div class="tone-name">${tone.name}</div>
+                        <div class="tone-description">${tone.description}</div>
+                        <div class="tone-actions">
+                            <button class="button button-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="event.stopPropagation(); editTone(${index})">Edit</button>
+                            <button class="button button-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="event.stopPropagation(); deleteTone(${index})">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function selectTone(index) {
+            // Clear previous selections
+            document.querySelectorAll('.saved-tone-item').forEach(item => item.classList.remove('selected'));
+            
+            // Select current item
+            const items = document.querySelectorAll('.saved-tone-item');
+            if (items[index]) {
+                items[index].classList.add('selected');
+                const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+                selectedCustomTone = savedTones[index];
+                updateUseButtonState();
+            }
+        }
+        
+        function saveCustomTone() {
+            const name = document.getElementById('tone-name').value.trim();
+            const description = document.getElementById('tone-description').value.trim();
+            
+            if (!name || !description) {
+                alert('Please enter both a name and description for your custom tone.');
+                return;
+            }
+            
+            const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+            const newTone = {
+                name: name,
+                description: description,
+                createdAt: new Date().toISOString()
+            };
+            
+            savedTones.push(newTone);
+            localStorage.setItem('customTones', JSON.stringify(savedTones));
+            
+            // Clear form
+            document.getElementById('tone-name').value = '';
+            document.getElementById('tone-description').value = '';
+            
+            // Switch to saved tab and refresh
+            switchTab('saved');
+            loadSavedTones();
+            
+            alert('Custom tone saved successfully!');
+        }
+        
+        function editTone(index) {
+            const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+            const tone = savedTones[index];
+            
+            // Switch to create tab and populate form
+            switchTab('create');
+            document.getElementById('tone-name').value = tone.name;
+            document.getElementById('tone-description').value = tone.description;
+            
+            // Change save button to update
+            const saveBtn = document.getElementById('save-tone-btn');
+            saveBtn.textContent = 'Update Tone';
+            saveBtn.onclick = () => updateTone(index);
+        }
+        
+        function updateTone(index) {
+            const name = document.getElementById('tone-name').value.trim();
+            const description = document.getElementById('tone-description').value.trim();
+            
+            if (!name || !description) {
+                alert('Please enter both a name and description for your custom tone.');
+                return;
+            }
+            
+            const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+            savedTones[index] = {
+                ...savedTones[index],
+                name: name,
+                description: description,
+                updatedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('customTones', JSON.stringify(savedTones));
+            
+            // Reset form and button
+            document.getElementById('tone-name').value = '';
+            document.getElementById('tone-description').value = '';
+            const saveBtn = document.getElementById('save-tone-btn');
+            saveBtn.textContent = 'Save Tone';
+            saveBtn.onclick = saveCustomTone;
+            
+            // Switch to saved tab and refresh
+            switchTab('saved');
+            loadSavedTones();
+            
+            alert('Custom tone updated successfully!');
+        }
+        
+        function deleteTone(index) {
+            if (confirm('Are you sure you want to delete this custom tone?')) {
+                const savedTones = JSON.parse(localStorage.getItem('customTones') || '[]');
+                savedTones.splice(index, 1);
+                localStorage.setItem('customTones', JSON.stringify(savedTones));
+                loadSavedTones();
+            }
+        }
+        
+        function updateUseButtonState() {
+            const useBtn = document.getElementById('use-tone-btn');
+            const activeTab = document.querySelector('.tab-button.active').id;
+            
+            if (activeTab === 'saved-tab' && selectedCustomTone) {
+                useBtn.disabled = false;
+                useBtn.textContent = `Use "${selectedCustomTone.name}"`;
+            } else {
+                useBtn.disabled = true;
+                useBtn.textContent = 'Use Selected Tone';
+            }
+        }
+        
+        function useSelectedTone() {
+            if (!selectedCustomTone) return;
+            
+            // Apply selected tone to the appropriate field
+            if (currentCustomToneTarget === 'single') {
+                document.getElementById('custom-tone').value = selectedCustomTone.description;
+                document.getElementById('custom-tone').style.display = 'none'; // Hide the field since we're using modal
+            } else if (currentCustomToneTarget === 'batch') {
+                document.getElementById('batch-custom-tone').value = selectedCustomTone.description;
+                document.getElementById('batch-custom-tone').style.display = 'none'; // Hide the field since we're using modal
+            }
+            
+            closeCustomToneModal();
+        }
+        
+        // Tweet Interaction Functions
+        async function likeTweet(tweetId, tweetUrl = '', event = null) {
+            if (event) {
+                event.stopPropagation(); // Prevent card click event
+            }
+            
+            const likeBtn = document.getElementById(`like-btn-${tweetId}`) || 
+                           document.getElementById(`batch-like-btn-${tweetId}`);
+            
+            if (!likeBtn) return;
+            
+            // Disable button and show loading state
+            likeBtn.disabled = true;
+            likeBtn.textContent = '⏳ Liking...';
+            
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: tweetUrl
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update button to liked state
+                    likeBtn.classList.add('liked');
+                    likeBtn.textContent = '💚 Liked';
+                    likeBtn.title = `Liked via ${result.method_used}`;
+                    showNotification(`Tweet liked successfully via ${result.method_used}`, 'success');
+                } else if (result.already_liked) {
+                    // Already liked
+                    likeBtn.classList.add('liked');
+                    likeBtn.textContent = '💚 Liked';
+                    likeBtn.disabled = true;
+                    showNotification('Tweet was already liked', 'info');
+                } else {
+                    // Failed to like
+                    likeBtn.textContent = '❤️ Like';
+                    showNotification(`Failed to like tweet: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error liking tweet:', error);
+                likeBtn.textContent = '❤️ Like';
+                showNotification('Error liking tweet. Please try again.', 'error');
+            } finally {
+                likeBtn.disabled = false;
+            }
+        }
+        
+        async function retweetTweet(tweetId, tweetUrl = '', event = null) {
+            if (event) {
+                event.stopPropagation(); // Prevent card click event
+            }
+            
+            const retweetBtn = document.getElementById(`retweet-btn-${tweetId}`) || 
+                              document.getElementById(`batch-retweet-btn-${tweetId}`);
+            
+            if (!retweetBtn) return;
+            
+            // Disable button and show loading state
+            retweetBtn.disabled = true;
+            retweetBtn.textContent = '⏳ Retweeting...';
+            
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/retweet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: tweetUrl
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update button to retweeted state
+                    retweetBtn.classList.add('retweeted');
+                    retweetBtn.textContent = '💙 Retweeted';
+                    retweetBtn.title = `Retweeted via ${result.method_used}`;
+                    showNotification(`Tweet retweeted successfully via ${result.method_used}`, 'success');
+                } else if (result.already_retweeted) {
+                    // Already retweeted
+                    retweetBtn.classList.add('retweeted');
+                    retweetBtn.textContent = '💙 Retweeted';
+                    retweetBtn.disabled = true;
+                    showNotification('Tweet was already retweeted', 'info');
+                } else {
+                    // Failed to retweet
+                    retweetBtn.textContent = '🔄 Retweet';
+                    showNotification(`Failed to retweet: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error retweeting:', error);
+                retweetBtn.textContent = '🔄 Retweet';
+                showNotification('Error retweeting. Please try again.', 'error');
+            } finally {
+                retweetBtn.disabled = false;
+            }
+        }
+        
+        // Check interaction status for tweets and update button states
+        async function checkTweetInteractions(tweetId) {
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/interactions`);
+                const result = await response.json();
+                
+                if (result.interactions) {
+                    // Update like button
+                    const likeBtn = document.getElementById(`like-btn-${tweetId}`) || 
+                                   document.getElementById(`batch-like-btn-${tweetId}`);
+                    if (likeBtn && result.interactions.liked) {
+                        likeBtn.classList.add('liked');
+                        likeBtn.textContent = '💚 Liked';
+                        likeBtn.disabled = true;
+                    }
+                    
+                    // Update retweet button
+                    const retweetBtn = document.getElementById(`retweet-btn-${tweetId}`) || 
+                                      document.getElementById(`batch-retweet-btn-${tweetId}`);
+                    if (retweetBtn && result.interactions.retweeted) {
+                        retweetBtn.classList.add('retweeted');
+                        retweetBtn.textContent = '💙 Retweeted';
+                        retweetBtn.disabled = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking tweet interactions:', error);
+            }
+        }
+        
+        // Twitter API validation function
+        async function validateTwitterAPI() {
+            try {
+                showNotification('Validating Twitter API credentials...', 'info');
+                
+                const response = await fetch('/api/twitter/validate');
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.status_summary, 'success');
+                } else {
+                    showNotification(`Twitter API validation failed: ${result.validation_results.errors.join(', ')}`, 'error');
+                    
+                    // Show setup instructions if there are recommendations
+                    if (result.validation_results.recommendations.length > 0) {
+                        console.log('Twitter API Setup Recommendations:', result.validation_results.recommendations);
+                    }
+                }
+            } catch (error) {
+                console.error('Error validating Twitter API:', error);
+                showNotification('Error validating Twitter API credentials', 'error');
+            }
+        }
+        
+        // Simple notification system
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            `;
+            
+            // Set background color based on type
+            switch (type) {
+                case 'success':
+                    notification.style.background = '#34c759';
+                    break;
+                case 'error':
+                    notification.style.background = '#ff3b30';
+                    break;
+                case 'info':
+                    notification.style.background = '#007aff';
+                    break;
+                default:
+                    notification.style.background = '#8e8e93';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
