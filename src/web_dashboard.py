@@ -1584,10 +1584,12 @@ async def batch_process_list_tweets(request: Request):
             replied_tweet_ids = set(db.get_replied_tweet_ids())
             processed_tweet_ids = set(db.bulk_check_processed_tweets([tweet.tweet_id for tweet in all_tweets]))
         except Exception as e:
-            error_msg = f"Database error checking processed tweets: {str(e)}. Cannot ensure deduplication - aborting for safety."
-            add_to_activity_log(error_msg, "error")
-            logger.error(error_msg)
-            raise HTTPException(status_code=503, detail="Database unavailable for deduplication check")
+            # FAIL-SAFE: Continue without deduplication check if database is unavailable
+            # This prevents blocking filtering when DB tables don't exist
+            add_to_activity_log(f"Warning: Database deduplication check failed ({str(e)}). Continuing without deduplication.", "warning")
+            logger.warning(f"Deduplication check failed: {e}, continuing without deduplication")
+            replied_tweet_ids = set()
+            processed_tweet_ids = set()
         
         tweets_before_filter = len(all_tweets)
         
@@ -1691,12 +1693,18 @@ async def batch_process_list_tweets(request: Request):
                         decision_save_failures += 1
                         logger.error(f"Failed to save decision for tweet {decision.tweet_id}: {e}")
                 
-                # FAIL-SAFE: If we can't save decisions, don't proceed with filtering
-                if decision_save_failures > len(filtering_decisions) * 0.5:  # >50% failures
-                    error_msg = f"Database failure: {decision_save_failures}/{len(filtering_decisions)} decision saves failed. Filtering disabled for safety."
+                # FAIL-SAFE: Only disable filtering if core analysis fails (not database saves)
+                # Allow filtering to continue even if database saves fail - filtering is more important than logging
+                if decision_save_failures > 0:
+                    add_to_activity_log(f"Warning: {decision_save_failures}/{len(filtering_decisions)} decision saves failed (database issues). Continuing with filtering.", "warning")
+                    logger.warning(f"Database save failures: {decision_save_failures}/{len(filtering_decisions)}, but filtering will continue")
+                
+                # Only abort if we have no filtering decisions at all (core analysis failure)
+                if not filtering_decisions:
+                    error_msg = "Core filtering analysis failed - no decisions generated"
                     add_to_activity_log(error_msg, "error")
                     logger.error(error_msg)
-                    raise HTTPException(status_code=503, detail="Filtering system unavailable due to database errors")
+                    raise HTTPException(status_code=503, detail="Filtering system analysis failed")
                 
                 # Filter to approved tweets only
                 approved_tweet_ids = {d.tweet_id for d in filtering_decisions if d.final == 'approved'}
