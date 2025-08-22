@@ -98,7 +98,7 @@ class TweetDecision(BaseModel):
     final: str        # 'approved' | 'rejected'
     categories: Optional[str] = None  # JSON string of categories
     processing_time_ms: int = 0
-    relevance_threshold: float = 80.0
+    relevance_threshold: float = 20.0
     filter_version: str = "v2"
     created_at: Optional[datetime] = None
 

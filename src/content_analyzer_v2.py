@@ -282,31 +282,32 @@ class BulletproofContentAnalyzer:
         Returns: (approved, relevance_score, categories, reason)
         """
         try:
-            # Create strict analysis prompt
-            prompt = f"""You are an EXTREMELY STRICT technical content curator.
+            # Create balanced analysis prompt
+            prompt = f"""You are a technical content curator focused on quality tech/AI content.
 
-APPROVE RATE: <10% of all tweets. Reject anything questionable.
+Target approval rate: 30-50% for technical content from credible sources.
 
 TWEET:
 Author: @{tweet.author_username}
 Text: {tweet.text}
 Likes: {tweet.like_count}, RTs: {tweet.retweet_count}
 
-ONLY APPROVE if tweet is:
-- Substantial AI/ML research, tools, tutorials with concrete examples
-- Specific programming techniques, frameworks, code samples
-- Developer tools with actual functionality described
-- Technical deep-dives with implementation details
-- No-code platforms with real workflow examples
+APPROVE if tweet contains:
+- AI/ML research, tools, tutorials, or meaningful technical discussions
+- Programming techniques, frameworks, code samples, or developer insights
+- Developer tools, platforms, or technical announcements with context
+- Technical deep-dives, implementation details, or educational content
+- Quality technical opinions from established researchers/practitioners
+- No-code platforms, productivity tools, or technical workflow examples
 
-IMMEDIATELY REJECT:
-- Generic hype ("AI will change everything")
-- Vague announcements without substance
-- Personal opinions without technical details
-- Lifestyle, entertainment, non-tech content
-- Simple links without explanation
+REJECT if tweet contains:
+- Lifestyle, entertainment, sports, food, travel, personal life content
+- Generic hype without substance ("AI will change everything" without details)
+- Non-technical personal opinions or social commentary
+- Pure marketing without technical value
+- Off-topic content unrelated to tech/AI/programming
 
-Be EXTREMELY strict. When uncertain, REJECT.
+When evaluating borderline cases, consider the author's credibility and technical context.
 
 Respond ONLY with valid JSON:
 {{

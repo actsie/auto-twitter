@@ -612,7 +612,7 @@ class RapidAPIClient:
         
         return mock_tweets
     
-    async def get_user_replies(self, user_id: str = "1693279535096324096", count: int = 20) -> List[UserReply]:
+    async def get_user_replies(self, user_id: str = "1952759081502224384", count: int = 20) -> List[UserReply]:
         """Get recent replies posted by the user"""
         logger.info(f"Fetching {count} recent replies for user {user_id}")
         
@@ -771,6 +771,202 @@ class RapidAPIClient:
             ))
         
         return mock_replies
+    
+    async def scrape_twitter_list_with_window(self, list_id: str, count: int = 5, 
+                                            window_minutes: int = 30) -> List[ScrapedTweet]:
+        """
+        Scrape tweets from a Twitter list with time window support
+        
+        Args:
+            list_id: Twitter list ID (e.g., "1957324919269929248")
+            count: Number of tweets to fetch (default 5)
+            window_minutes: Time window in minutes (currently not supported by API, for future use)
+            
+        Returns:
+            List of ScrapedTweet objects
+            
+        Note: This is currently a wrapper around scrape_twitter_list() since the RapidAPI
+        doesn't support time window filtering. The window_minutes parameter is logged
+        for telemetry but not used in filtering. Age filtering happens post-fetch
+        in the SmartBackfillOrchestrator.
+        """
+        logger.info(f"Fetching tweets with window: {window_minutes}m (note: post-processing filter only)")
+        
+        # For now, delegate to existing method
+        # TODO: When API supports time windows, implement here
+        tweets = await self.scrape_twitter_list(list_id, count)
+        
+        # Note: Age filtering will happen in SmartBackfillOrchestrator using _filter_by_age()
+        # since the RapidAPI doesn't currently support time window parameters
+        
+        return tweets
+
+    async def search_tweets(self, query: str, count: int = 20, search_type: str = "Top") -> List[ScrapedTweet]:
+        """
+        Search tweets using Twitter search API via RapidAPI
+        
+        Args:
+            query: Search query string
+            count: Number of tweets to fetch (default 20)
+            search_type: Search type - "Top", "Latest", "People", "Photos", "Videos"
+            
+        Returns:
+            List of ScrapedTweet objects
+        """
+        logger.info(f"Searching tweets: query='{query}', count={count}, type={search_type}")
+        
+        try:
+            url = "https://twitter241.p.rapidapi.com/search-v2"
+            querystring = {
+                "type": search_type,
+                "count": str(min(count, 100)),  # Limit max count
+                "query": query
+            }
+            
+            headers = {
+                "x-rapidapi-key": settings.rapidapi_key,
+                "x-rapidapi-host": "twitter241.p.rapidapi.com"
+            }
+            
+            logger.info(f"Making search request to {url} with params: {querystring}")
+            
+            response = requests.get(url, headers=headers, params=querystring, timeout=30)
+            logger.info(f"Search response status: {response.status_code}")
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            # Parse search results (similar structure to list results)
+            parsed_tweets = self._parse_search_response(data)
+            logger.info(f"Successfully parsed {len(parsed_tweets)} tweets from search")
+            
+            return parsed_tweets
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error searching tweets: {e}")
+            # Return mock data for development
+            return self._generate_mock_search_tweets(query, count)
+        except Exception as e:
+            logger.error(f"Unexpected error in search_tweets: {e}")
+            return self._generate_mock_search_tweets(query, count)
+
+    def _parse_search_response(self, data: Dict[str, Any]) -> List[ScrapedTweet]:
+        """Parse search response from RapidAPI (similar structure to list response)"""
+        try:
+            tweets = []
+            
+            # Handle search response structure (should be similar to list timeline)
+            if "result" in data:
+                timeline = data["result"].get("timeline", {})
+                instructions = timeline.get("instructions", [])
+                
+                for instruction in instructions:
+                    if instruction.get("type") == "TimelineAddEntries":
+                        entries = instruction.get("entries", [])
+                        
+                        for entry in entries:
+                            entry_id = entry.get("entryId", "")
+                            
+                            if entry_id.startswith("tweet-"):
+                                content = entry.get("content", {})
+                                item_content = content.get("itemContent", {})
+                                tweet_results = item_content.get("tweet_results", {})
+                                tweet_data = tweet_results.get("result", {})
+                                
+                                if tweet_data:
+                                    # Extract tweet ID from entryId or rest_id
+                                    tweet_id = tweet_data.get("rest_id") or entry.get("entryId", "").replace("tweet-", "")
+                                    
+                                    # Extract legacy tweet data (Twitter API v2 format)
+                                    legacy = tweet_data.get("legacy", {})
+                                    user_data = tweet_data.get("core", {}).get("user_results", {}).get("result", {})
+                                    user_legacy = user_data.get("legacy", {})
+                                    
+                                    if legacy and user_legacy:
+                                        # Extract username and build URL
+                                        username = user_legacy.get("screen_name", "unknown_user")
+                                        tweet_url = f"https://x.com/{username}/status/{tweet_id}"
+                                        
+                                        # Create scraped tweet object using same logic as list parsing
+                                        tweet = ScrapedTweet(
+                                            tweet_id=tweet_id,
+                                            url=tweet_url,
+                                            text=legacy.get("full_text", legacy.get("text", "")),
+                                            author_username=username,
+                                            author_display_name=user_legacy.get("name", username),
+                                            author_profile_image=user_legacy.get("profile_image_url_https", ""),
+                                            created_at=legacy.get("created_at", datetime.now().isoformat()),
+                                            retweet_count=legacy.get("retweet_count", 0),
+                                            reply_count=legacy.get("reply_count", 0),
+                                            like_count=legacy.get("favorite_count", 0),
+                                            quote_count=legacy.get("quote_count", 0),
+                                            view_count=tweet_data.get("views", {}).get("count", 0),
+                                            bookmark_count=legacy.get("bookmark_count", 0),
+                                            is_retweet=legacy.get("retweeted", False),
+                                            is_quote=bool(legacy.get("quoted_status_permalink")),
+                                            media_urls=self._extract_media_urls_v2(legacy),
+                                            hashtags=self._extract_hashtags_v2(legacy),
+                                            mentions=self._extract_mentions_v2(legacy)
+                                        )
+                                        
+                                        tweets.append(tweet)
+                                        logger.info(f"Parsed search tweet {len(tweets)}: {tweet_id} by @{username}")
+            
+            return tweets
+            
+        except Exception as e:
+            logger.error(f"Error parsing search response: {e}")
+            return []
+
+    def _generate_mock_search_tweets(self, query: str, count: int) -> List[ScrapedTweet]:
+        """Generate mock search results for development"""
+        logger.info(f"Generating {count} mock search tweets for query: {query}")
+        
+        # Create diverse mock tweets related to the search query
+        mock_tweets = []
+        sample_authors = ["elonmusk", "sama", "jeremyphoward", "fchollet", "karpathy", "ylecun"]
+        
+        for i in range(count):
+            timestamp = int(datetime.now().timestamp()) - (i * 3600)
+            tweet_id = f"search_mock_{i+1}_{timestamp}"
+            author = sample_authors[i % len(sample_authors)]
+            
+            # Generate query-relevant content
+            if "ai" in query.lower() or "ml" in query.lower():
+                sample_texts = [
+                    f"Excited to share our latest AI research findings! The model shows 23% improvement in {query} tasks.",
+                    f"Just published a new paper on {query} optimization. Early results look promising!",
+                    f"Working on some interesting {query} applications. Can't wait to share more details soon.",
+                ]
+            else:
+                sample_texts = [
+                    f"New developments in {query} are fascinating. Here's what we've learned so far...",
+                    f"Quick thread on {query} best practices from our recent experiments.",
+                    f"Sharing some insights about {query} that might be useful for the community.",
+                ]
+            
+            mock_tweets.append(ScrapedTweet(
+                tweet_id=tweet_id,
+                url=f"https://x.com/{author}/status/{tweet_id}",
+                text=sample_texts[i % len(sample_texts)],
+                author_username=author,
+                author_display_name=author.replace("_", " ").title(),
+                author_profile_image=f"https://pbs.twimg.com/profile_images/{author}_normal.jpg",
+                created_at=datetime.fromtimestamp(timestamp).isoformat() + "Z",
+                retweet_count=(i % 50) + 10,
+                reply_count=(i % 20) + 5,
+                like_count=(i % 200) + 50,
+                quote_count=i % 10,
+                view_count=(i % 5000) + 1000,
+                bookmark_count=i % 30,
+                is_retweet=False,
+                is_quote=i % 7 == 0,  # Occasional quotes
+                media_urls=[],
+                hashtags=[query.replace(" ", "").lower()] if " " not in query else [],
+                mentions=[]
+            ))
+        
+        return mock_tweets
     
     async def test_connection(self) -> bool:
         """Test RapidAPI connection"""

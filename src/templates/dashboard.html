@@ -594,6 +594,113 @@
             margin-top: 1rem;
         }
         
+        /* Mass Discovery Styles */
+        .discovery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .discovery-tweet-card {
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .discovery-tweet-card:hover {
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+        }
+        
+        .discovery-tweet-card.selected {
+            border-color: #007aff;
+            background: #f0f8ff;
+        }
+        
+        .discovery-source-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f8f9fa;
+            border: 1px solid #e5e5e7;
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            color: #666;
+        }
+        
+        .discovery-source-badge.list {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-color: #bbdefb;
+        }
+        
+        .discovery-source-badge.search {
+            background: #fff3e0;
+            color: #f57c00;
+            border-color: #ffcc02;
+        }
+        
+        .discovery-tweet-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .discovery-tweet-author {
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-right: 5px;
+        }
+        
+        .discovery-tweet-username {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .discovery-tweet-text {
+            line-height: 1.4;
+            margin-bottom: 10px;
+            flex-grow: 1;
+            font-size: 0.9rem;
+        }
+        
+        .discovery-tweet-metrics {
+            display: flex;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: auto;
+        }
+        
+        .discovery-tweet-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .discovery-tweet-actions button {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .discovery-tweet-actions button:hover {
+            background: #f0f8ff;
+            border-color: #007aff;
+        }
+        
         .batch-tweet-card {
             background: white;
             border: 1px solid #e5e5e7;
@@ -1102,6 +1209,86 @@
                 </div>
                 <div id="batch-tweets-container" class="batch-grid">
                     <!-- Batch tweet cards will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- NEW: Mass Discovery Dashboard -->
+        <div class="card" style="margin-top: 40px;">
+            <h3>🔍 Mass Discovery Mode</h3>
+            <p>Auto-cycle through all lists and search queries to discover maximum relevant tweets:</p>
+            <br>
+            
+            <div class="form-group">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <label for="mass-discovery-threshold" style="font-size: 0.9rem;">Relevance Threshold:</label>
+                        <input type="range" id="mass-discovery-threshold" min="10" max="50" value="20" 
+                               style="width: 100px;" oninput="updateMassDiscoveryThresholdDisplay()">
+                        <span id="mass-discovery-threshold-display" style="font-size: 0.9rem; font-weight: bold;">20%</span>
+                    </div>
+                    <button class="button" onclick="startMassDiscovery()" id="mass-discovery-btn">🔍 Start Mass Discovery</button>
+                </div>
+                <div style="margin-top: 5px; font-size: 0.8rem; color: #666;">
+                    Cycles through <strong id="discovery-source-count">loading...</strong> sources to find all relevant tweets. Lower threshold = more tweets.
+                </div>
+            </div>
+            
+            <div class="loading" id="mass-discovery-loading" style="margin-top: 1rem;">
+                <div class="loading-header">
+                    <span id="mass-discovery-stage">🔍 Cycling through all discovery sources...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mass Discovery Results -->
+        <div id="mass-discovery-results" style="display: none; margin-top: 20px;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>🌟 Mass Discovery Results</h3>
+                    <div>
+                        <span id="mass-discovery-stats" style="font-size: 0.9rem; color: #666;"></span>
+                        <button class="button button-secondary" onclick="exportDiscoveredTweets()">📤 Export</button>
+                        <button class="button button-secondary" onclick="selectAllDiscovered()">☑️ Select All</button>
+                        <button class="button" onclick="batchLikeDiscovered()">❤️ Batch Like</button>
+                        <button class="button button-danger" onclick="clearMassDiscoveryResults()">🗑️ Clear</button>
+                    </div>
+                </div>
+                
+                <!-- Discovery Summary -->
+                <div id="discovery-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;" id="total-discovered">0</div>
+                            <div style="font-size: 0.8rem; color: #666;">Total Discovered</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;" id="lists-processed">0</div>
+                            <div style="font-size: 0.8rem; color: #666;">Lists Processed</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #fd7e14;" id="searches-processed">0</div>
+                            <div style="font-size: 0.8rem; color: #666;">Searches Processed</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #6f42c1;" id="approval-rate">0%</div>
+                            <div style="font-size: 0.8rem; color: #666;">Approval Rate</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Source Filter -->
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9rem; margin-right: 10px;">Filter by source:</label>
+                    <select id="source-filter" onchange="filterDiscoveredTweets()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="all">All Sources</option>
+                        <option value="list">Lists Only</option>
+                        <option value="search">Searches Only</option>
+                    </select>
+                </div>
+                
+                <div id="discovered-tweets-container" class="discovery-grid">
+                    <!-- Discovered tweet cards will be displayed here -->
                 </div>
             </div>
         </div>
@@ -3147,6 +3334,331 @@
                 }, 300);
             }, 4000);
         }
+        
+        // Mass Discovery Functions
+        let discoveredTweets = [];
+        let selectedDiscoveredTweets = new Set();
+        
+        function updateMassDiscoveryThresholdDisplay() {
+            const threshold = document.getElementById('mass-discovery-threshold').value;
+            document.getElementById('mass-discovery-threshold-display').textContent = threshold + '%';
+        }
+        
+        async function loadDiscoverySourceCount() {
+            try {
+                const response = await fetch('/api/search/presets');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const searchCount = Object.keys(result.presets).length;
+                    // Assuming 2 lists from config (can be made dynamic later)
+                    const listCount = 2;
+                    const totalSources = listCount + searchCount;
+                    
+                    document.getElementById('discovery-source-count').textContent = 
+                        `${totalSources} sources (${listCount} lists + ${searchCount} searches)`;
+                }
+            } catch (error) {
+                console.error('Error loading source count:', error);
+                document.getElementById('discovery-source-count').textContent = 'multiple sources';
+            }
+        }
+        
+        async function startMassDiscovery() {
+            const btn = document.getElementById('mass-discovery-btn');
+            const loading = document.getElementById('mass-discovery-loading');
+            const resultsDiv = document.getElementById('mass-discovery-results');
+            const threshold = document.getElementById('mass-discovery-threshold').value;
+            
+            // Reset state
+            discoveredTweets = [];
+            selectedDiscoveredTweets.clear();
+            resultsDiv.style.display = 'none';
+            
+            // Show loading
+            btn.disabled = true;
+            btn.textContent = '⏳ Discovering...';
+            loading.style.display = 'block';
+            
+            const stageElement = document.getElementById('mass-discovery-stage');
+            
+            try {
+                stageElement.textContent = '🔍 Starting mass discovery across all sources...';
+                
+                const response = await fetch('/api/mass-discovery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        relevance_threshold: parseFloat(threshold)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    discoveredTweets = result.discovered_tweets;
+                    
+                    // Update summary statistics
+                    updateDiscoverySummary(result);
+                    
+                    // Display discovered tweets
+                    displayDiscoveredTweets(result.discovered_tweets);
+                    
+                    // Show results
+                    resultsDiv.style.display = 'block';
+                    
+                    showNotification(
+                        `🌟 Mass Discovery Complete! Found ${result.total_discovered} unique tweets from ${result.sources_processed.lists} lists and ${result.sources_processed.searches} searches.`,
+                        'success'
+                    );
+                    
+                } else {
+                    throw new Error(result.message || 'Mass discovery failed');
+                }
+                
+            } catch (error) {
+                console.error('Mass discovery error:', error);
+                showNotification(`❌ Mass discovery failed: ${error.message}`, 'error');
+                
+            } finally {
+                // Reset button
+                btn.disabled = false;
+                btn.textContent = '🔍 Start Mass Discovery';
+                loading.style.display = 'none';
+            }
+        }
+        
+        function updateDiscoverySummary(result) {
+            document.getElementById('total-discovered').textContent = result.total_discovered;
+            document.getElementById('lists-processed').textContent = result.sources_processed.lists;
+            document.getElementById('searches-processed').textContent = result.sources_processed.searches;
+            document.getElementById('approval-rate').textContent = result.overall_approval_rate.toFixed(1) + '%';
+            
+            document.getElementById('mass-discovery-stats').textContent = 
+                `${result.total_discovered} tweets discovered • ${result.duplicates_removed} duplicates removed • ${result.overall_approval_rate.toFixed(1)}% approval rate`;
+        }
+        
+        function displayDiscoveredTweets(tweets) {
+            const container = document.getElementById('discovered-tweets-container');
+            container.innerHTML = '';
+            
+            if (tweets.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No tweets discovered. Try lowering the relevance threshold.</p>';
+                return;
+            }
+            
+            tweets.forEach((tweetData, index) => {
+                const tweet = tweetData.tweet;
+                const source = tweetData.source;
+                
+                const card = document.createElement('div');
+                card.className = 'discovery-tweet-card';
+                card.dataset.tweetId = tweet.id;
+                card.dataset.sourceType = source.type;
+                
+                card.innerHTML = `
+                    <div class="discovery-source-badge ${source.type}">
+                        ${source.type === 'list' ? '📋' : '🔍'} ${source.name}
+                    </div>
+                    
+                    <div class="discovery-tweet-header">
+                        <div class="discovery-tweet-author">${tweet.author.display_name}</div>
+                        <div class="discovery-tweet-username">@${tweet.author.username}</div>
+                    </div>
+                    
+                    <div class="discovery-tweet-text">${tweet.text}</div>
+                    
+                    <div class="discovery-tweet-metrics">
+                        <span>❤️ ${tweet.metrics.likes}</span>
+                        <span>🔄 ${tweet.metrics.retweets}</span>
+                        <span>💬 ${tweet.metrics.replies}</span>
+                        <span>🔗 ${tweet.metrics.quotes}</span>
+                    </div>
+                    
+                    <div class="discovery-tweet-actions">
+                        <button onclick="selectDiscoveredTweet('${tweet.id}', this)">☐ Select</button>
+                        <button onclick="window.open('${tweet.url}', '_blank')">🔗 View</button>
+                        <button onclick="likeDiscoveredTweet('${tweet.id}')">❤️ Like</button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function selectDiscoveredTweet(tweetId, button) {
+            const card = button.closest('.discovery-tweet-card');
+            
+            if (selectedDiscoveredTweets.has(tweetId)) {
+                selectedDiscoveredTweets.delete(tweetId);
+                card.classList.remove('selected');
+                button.textContent = '☐ Select';
+            } else {
+                selectedDiscoveredTweets.add(tweetId);
+                card.classList.add('selected');
+                button.textContent = '☑️ Selected';
+            }
+        }
+        
+        function selectAllDiscovered() {
+            selectedDiscoveredTweets.clear();
+            discoveredTweets.forEach(tweetData => {
+                selectedDiscoveredTweets.add(tweetData.tweet.id);
+            });
+            updateDiscoveredSelectionUI();
+        }
+        
+        function updateDiscoveredSelectionUI() {
+            const cards = document.querySelectorAll('.discovery-tweet-card');
+            cards.forEach(card => {
+                const tweetId = card.dataset.tweetId;
+                const selectButton = card.querySelector('button');
+                
+                if (selectedDiscoveredTweets.has(tweetId)) {
+                    card.classList.add('selected');
+                    selectButton.textContent = '☑️ Selected';
+                } else {
+                    card.classList.remove('selected');
+                    selectButton.textContent = '☐ Select';
+                }
+            });
+        }
+        
+        async function batchLikeDiscovered() {
+            if (selectedDiscoveredTweets.size === 0) {
+                showNotification('⚠️ Please select tweets to like first', 'warning');
+                return;
+            }
+            
+            const tweetIds = Array.from(selectedDiscoveredTweets);
+            
+            try {
+                showNotification(`⏳ Liking ${tweetIds.length} selected tweets...`, 'info');
+                
+                const response = await fetch('/api/tweets/bulk-like', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_ids: tweetIds
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(
+                        `✅ Successfully liked ${result.successful_count}/${tweetIds.length} tweets`,
+                        'success'
+                    );
+                } else {
+                    throw new Error(result.message || 'Bulk like failed');
+                }
+                
+            } catch (error) {
+                console.error('Bulk like error:', error);
+                showNotification(`❌ Bulk like failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function likeDiscoveredTweet(tweetId) {
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: `https://twitter.com/x/status/${tweetId}`
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ Tweet liked successfully`, 'success');
+                } else if (result.already_liked) {
+                    showNotification(`ℹ️ Tweet already liked`, 'info');
+                } else {
+                    throw new Error(result.message || 'Like failed');
+                }
+                
+            } catch (error) {
+                console.error('Like error:', error);
+                showNotification(`❌ Like failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function filterDiscoveredTweets() {
+            const filter = document.getElementById('source-filter').value;
+            const cards = document.querySelectorAll('.discovery-tweet-card');
+            
+            cards.forEach(card => {
+                const sourceType = card.dataset.sourceType;
+                
+                if (filter === 'all' || filter === sourceType) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        function exportDiscoveredTweets() {
+            if (discoveredTweets.length === 0) {
+                showNotification('⚠️ No tweets to export', 'warning');
+                return;
+            }
+            
+            const exportData = discoveredTweets.map(tweetData => ({
+                tweet_id: tweetData.tweet.id,
+                url: tweetData.tweet.url,
+                text: tweetData.tweet.text,
+                author: tweetData.tweet.author.username,
+                display_name: tweetData.tweet.author.display_name,
+                likes: tweetData.tweet.metrics.likes,
+                retweets: tweetData.tweet.metrics.retweets,
+                source_type: tweetData.source.type,
+                source_name: tweetData.source.name,
+                discovery_score: tweetData.discovery_score
+            }));
+            
+            const csvContent = [
+                'Tweet ID,URL,Text,Author,Display Name,Likes,Retweets,Source Type,Source Name,Discovery Score',
+                ...exportData.map(tweet => 
+                    `"${tweet.tweet_id}","${tweet.url}","${tweet.text.replace(/"/g, '""')}","${tweet.author}","${tweet.display_name}",${tweet.likes},${tweet.retweets},"${tweet.source_type}","${tweet.source_name}",${tweet.discovery_score}`
+                )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mass_discovery_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification(`📤 Exported ${discoveredTweets.length} tweets to CSV`, 'success');
+        }
+        
+        function clearMassDiscoveryResults() {
+            if (confirm('Are you sure you want to clear all discovery results?')) {
+                discoveredTweets = [];
+                selectedDiscoveredTweets.clear();
+                document.getElementById('mass-discovery-results').style.display = 'none';
+                showNotification('🗑️ Discovery results cleared', 'info');
+            }
+        }
+        
+        // Initialize discovery source count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDiscoverySourceCount();
+        });
     </script>
 </body>
 </html>

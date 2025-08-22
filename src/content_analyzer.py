@@ -33,7 +33,7 @@ class ContentAnalysis:
 class ContentAnalyzer:
     """AI-powered content analyzer for intelligent tweet curation"""
     
-    def __init__(self, relevance_threshold: float = 80.0):
+    def __init__(self, relevance_threshold: float = 20.0):
         self.api_key = settings.openai_api_key
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")

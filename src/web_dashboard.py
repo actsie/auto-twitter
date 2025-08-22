@@ -2015,6 +2015,206 @@ async def batch_process_list_tweets(request: Request):
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 
+@app.post("/api/mass-discovery")
+async def mass_discovery(request: Request):
+    """Auto-cycle through all lists and search queries to discover maximum relevant tweets"""
+    try:
+        body = await request.json()
+        relevance_threshold = body.get("relevance_threshold", 20.0)
+        
+        add_to_activity_log("🔍 Starting Mass Discovery: cycling through all sources", "info")
+        
+        all_discovered_tweets = []
+        source_stats = {}
+        total_processed = 0
+        total_approved = 0
+        
+        # Use existing bulletproof analyzer
+        bulletproof_analyzer.relevance_threshold = relevance_threshold
+        
+        # Phase 1: Cycle through all configured lists
+        add_to_activity_log(f"📋 Phase 1: Processing {len(settings.discovery_lists)} lists", "info")
+        
+        for i, list_id in enumerate(settings.discovery_lists):
+            try:
+                add_to_activity_log(f"📋 Processing list {i+1}/{len(settings.discovery_lists)}: {list_id}", "info")
+                
+                # Fetch large batch from list
+                list_tweets = await rapidapi_client.scrape_twitter_list(list_id, settings.discovery_max_per_source)
+                if not list_tweets:
+                    list_tweets = rapidapi_client._generate_mock_list_tweets(list_id, settings.discovery_max_per_source)
+                
+                # Apply bulletproof filtering
+                approved_tweets = []
+                for tweet in list_tweets:
+                    should_reject, reason = bulletproof_analyzer.quick_filter(tweet)
+                    if not should_reject:
+                        approved_tweets.append(tweet)
+                
+                # Track stats
+                source_stats[f"list_{list_id}"] = {
+                    "source_type": "list",
+                    "source_id": list_id,
+                    "total_fetched": len(list_tweets),
+                    "approved": len(approved_tweets),
+                    "approval_rate": len(approved_tweets) / len(list_tweets) * 100 if list_tweets else 0
+                }
+                
+                # Add approved tweets with source tracking
+                for tweet in approved_tweets:
+                    tweet_data = {
+                        "tweet": {
+                            "id": tweet.tweet_id,
+                            "url": tweet.url,
+                            "text": tweet.text,
+                            "author": {
+                                "username": tweet.author_username,
+                                "display_name": tweet.author_display_name,
+                                "profile_image": tweet.author_profile_image
+                            },
+                            "created_at": tweet.created_at,
+                            "metrics": {
+                                "likes": tweet.like_count,
+                                "retweets": tweet.retweet_count,
+                                "replies": tweet.reply_count,
+                                "quotes": tweet.quote_count,
+                                "views": tweet.view_count,
+                                "bookmarks": tweet.bookmark_count
+                            },
+                            "hashtags": tweet.hashtags,
+                            "mentions": tweet.mentions
+                        },
+                        "source": {
+                            "type": "list",
+                            "id": list_id,
+                            "name": f"List {list_id}"
+                        },
+                        "discovery_score": 95.0
+                    }
+                    all_discovered_tweets.append(tweet_data)
+                
+                total_processed += len(list_tweets)
+                total_approved += len(approved_tweets)
+                
+                add_to_activity_log(f"📋 List {list_id}: {len(approved_tweets)}/{len(list_tweets)} approved ({len(approved_tweets)/len(list_tweets)*100:.1f}%)", "success" if approved_tweets else "warning")
+                
+            except Exception as e:
+                add_to_activity_log(f"❌ Error processing list {list_id}: {str(e)}", "error")
+                logger.error(f"Mass discovery list error: {e}")
+        
+        # Phase 2: Cycle through all search presets
+        add_to_activity_log(f"🔍 Phase 2: Processing {len(settings.search_presets)} search queries", "info")
+        
+        for i, (preset_name, search_query) in enumerate(settings.search_presets.items()):
+            try:
+                add_to_activity_log(f"🔍 Processing search {i+1}/{len(settings.search_presets)}: {preset_name}", "info")
+                
+                # Search for tweets
+                search_tweets = await rapidapi_client.search_tweets(search_query, settings.discovery_max_per_source, "Top")
+                
+                # Apply bulletproof filtering
+                approved_tweets = []
+                for tweet in search_tweets:
+                    should_reject, reason = bulletproof_analyzer.quick_filter(tweet)
+                    if not should_reject:
+                        approved_tweets.append(tweet)
+                
+                # Track stats
+                source_stats[f"search_{preset_name}"] = {
+                    "source_type": "search",
+                    "source_id": preset_name,
+                    "query": search_query,
+                    "total_fetched": len(search_tweets),
+                    "approved": len(approved_tweets),
+                    "approval_rate": len(approved_tweets) / len(search_tweets) * 100 if search_tweets else 0
+                }
+                
+                # Add approved tweets with source tracking
+                for tweet in approved_tweets:
+                    tweet_data = {
+                        "tweet": {
+                            "id": tweet.tweet_id,
+                            "url": tweet.url,
+                            "text": tweet.text,
+                            "author": {
+                                "username": tweet.author_username,
+                                "display_name": tweet.author_display_name,
+                                "profile_image": tweet.author_profile_image
+                            },
+                            "created_at": tweet.created_at,
+                            "metrics": {
+                                "likes": tweet.like_count,
+                                "retweets": tweet.retweet_count,
+                                "replies": tweet.reply_count,
+                                "quotes": tweet.quote_count,
+                                "views": tweet.view_count,
+                                "bookmarks": tweet.bookmark_count
+                            },
+                            "hashtags": tweet.hashtags,
+                            "mentions": tweet.mentions
+                        },
+                        "source": {
+                            "type": "search",
+                            "id": preset_name,
+                            "name": preset_name.replace("_", " ").title(),
+                            "query": search_query
+                        },
+                        "discovery_score": 90.0
+                    }
+                    all_discovered_tweets.append(tweet_data)
+                
+                total_processed += len(search_tweets)
+                total_approved += len(approved_tweets)
+                
+                add_to_activity_log(f"🔍 Search '{preset_name}': {len(approved_tweets)}/{len(search_tweets)} approved ({len(approved_tweets)/len(search_tweets)*100:.1f}%)", "success" if approved_tweets else "warning")
+                
+            except Exception as e:
+                add_to_activity_log(f"❌ Error processing search '{preset_name}': {str(e)}", "error")
+                logger.error(f"Mass discovery search error: {e}")
+        
+        # Phase 3: Deduplicate tweets
+        add_to_activity_log("🔗 Phase 3: Deduplicating discovered tweets", "info")
+        
+        seen_tweet_ids = set()
+        deduplicated_tweets = []
+        
+        for tweet_data in all_discovered_tweets:
+            tweet_id = tweet_data["tweet"]["id"]
+            if tweet_id not in seen_tweet_ids:
+                seen_tweet_ids.add(tweet_id)
+                deduplicated_tweets.append(tweet_data)
+        
+        duplicates_removed = len(all_discovered_tweets) - len(deduplicated_tweets)
+        if duplicates_removed > 0:
+            add_to_activity_log(f"🔗 Removed {duplicates_removed} duplicate tweets", "info")
+        
+        # Final stats
+        overall_approval_rate = (total_approved / total_processed * 100) if total_processed > 0 else 0
+        
+        add_to_activity_log(f"✅ Mass Discovery Complete: {len(deduplicated_tweets)} unique tweets discovered from {len(settings.discovery_lists)} lists + {len(settings.search_presets)} searches", "success")
+        add_to_activity_log(f"📊 Overall stats: {total_approved}/{total_processed} approved ({overall_approval_rate:.1f}% rate)", "info")
+        
+        return {
+            "success": True,
+            "discovered_tweets": deduplicated_tweets,
+            "total_discovered": len(deduplicated_tweets),
+            "total_processed": total_processed,
+            "total_approved": total_approved,
+            "duplicates_removed": duplicates_removed,
+            "overall_approval_rate": overall_approval_rate,
+            "source_stats": source_stats,
+            "sources_processed": {
+                "lists": len(settings.discovery_lists),
+                "searches": len(settings.search_presets)
+            }
+        }
+        
+    except Exception as e:
+        error_msg = f"Error in mass discovery: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
 def run_dashboard(host="127.0.0.1", port=8000):
     """Run the web dashboard"""
     print(f"🌐 Starting Twitter Bot Dashboard at http://{host}:{port}")
