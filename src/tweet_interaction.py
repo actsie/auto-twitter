@@ -54,7 +54,7 @@ class TweetInteractionService:
     """Service for handling all tweet interactions (like, retweet, reply)"""
     
     def __init__(self):
-        self.methods = ["twitter_api", "mock_success"]
+        self.methods = ["n8n", "twitter_api", "mock_success"]
         self.rate_limits = {
             "like": {"requests_per_15min": 300, "current_count": 0, "reset_time": None},
             "retweet": {"requests_per_15min": 300, "current_count": 0, "reset_time": None},
@@ -168,7 +168,9 @@ class TweetInteractionService:
             try:
                 logger.info(f"Trying {method} method for liking tweet")
                 
-                if method == "twitter_api":
+                if method == "n8n":
+                    result = await self._like_via_n8n(tweet_id)
+                elif method == "twitter_api":
                     result = await self._like_via_twitter_api(tweet_id)
                 elif method == "mock_success":
                     result = await self._like_via_mock(tweet_id)
@@ -230,7 +232,9 @@ class TweetInteractionService:
             try:
                 logger.info(f"Trying {method} method for retweeting tweet")
                 
-                if method == "twitter_api":
+                if method == "n8n":
+                    result = await self._retweet_via_n8n(tweet_id)
+                elif method == "twitter_api":
                     result = await self._retweet_via_twitter_api(tweet_id)
                 elif method == "mock_success":
                     result = await self._retweet_via_mock(tweet_id)
@@ -495,6 +499,104 @@ class TweetInteractionService:
                 interaction_type=InteractionType.RETWEET,
                 method_used="twitter_api",
                 error_message=error_msg
+            )
+    
+    async def _like_via_n8n(self, tweet_id: str) -> InteractionResult:
+        """Like tweet via n8n webhook"""
+        from .config import settings
+        
+        if not settings.n8n_like_webhook_url:
+            return InteractionResult(
+                success=False,
+                interaction_type=InteractionType.LIKE,
+                method_used="n8n",
+                error_message="N8N like webhook URL not configured"
+            )
+        
+        try:
+            payload = {
+                "body": {
+                    "tweet_id": tweet_id
+                }
+            }
+            
+            loop = asyncio.get_event_loop()
+            
+            def make_request():
+                import requests
+                response = requests.post(
+                    settings.n8n_like_webhook_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=30
+                )
+                response.raise_for_status()
+                return response.json()
+            
+            result = await loop.run_in_executor(None, make_request)
+            
+            return InteractionResult(
+                success=True,
+                interaction_type=InteractionType.LIKE,
+                method_used="n8n",
+                interaction_id=f"n8n_like_{tweet_id}"
+            )
+            
+        except Exception as e:
+            return InteractionResult(
+                success=False,
+                interaction_type=InteractionType.LIKE,
+                method_used="n8n",
+                error_message=f"N8N like error: {str(e)}"
+            )
+    
+    async def _retweet_via_n8n(self, tweet_id: str) -> InteractionResult:
+        """Retweet tweet via n8n webhook"""
+        from .config import settings
+        
+        if not settings.n8n_rt_webhook_url:
+            return InteractionResult(
+                success=False,
+                interaction_type=InteractionType.RETWEET,
+                method_used="n8n",
+                error_message="N8N retweet webhook URL not configured"
+            )
+        
+        try:
+            payload = {
+                "body": {
+                    "tweet_id": tweet_id
+                }
+            }
+            
+            loop = asyncio.get_event_loop()
+            
+            def make_request():
+                import requests
+                response = requests.post(
+                    settings.n8n_rt_webhook_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=30
+                )
+                response.raise_for_status()
+                return response.json()
+            
+            result = await loop.run_in_executor(None, make_request)
+            
+            return InteractionResult(
+                success=True,
+                interaction_type=InteractionType.RETWEET,
+                method_used="n8n",
+                interaction_id=f"n8n_retweet_{tweet_id}"
+            )
+            
+        except Exception as e:
+            return InteractionResult(
+                success=False,
+                interaction_type=InteractionType.RETWEET,
+                method_used="n8n",
+                error_message=f"N8N retweet error: {str(e)}"
             )
     
     async def _like_via_mock(self, tweet_id: str) -> InteractionResult:

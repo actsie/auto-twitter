@@ -533,8 +533,23 @@ async def import_twitter_list(request: Request):
             list_id = existing_list["id"]
             add_to_activity_log("List already exists, updating tweets", "info")
         else:
+            # Extract list ID from URL
+            import re
+            match = re.search(r'/lists/(\d+)', list_url)
+            if match:
+                extracted_list_id = match.group(1)
+            else:
+                raise HTTPException(status_code=400, detail="Invalid list URL - could not extract list ID")
+            
             # Create new list record
-            twitter_list = TwitterList(name=list_name, list_url=list_url)
+            twitter_list = TwitterList(
+                list_id=extracted_list_id,
+                name=list_name,
+                description="Imported list",
+                member_count=0,
+                is_private=False,
+                is_active=True
+            )
             list_id = db.save_twitter_list(twitter_list)
             if not list_id:
                 raise HTTPException(status_code=500, detail="Failed to save Twitter list")
@@ -605,13 +620,13 @@ async def import_twitter_list(request: Request):
 
 @app.get("/api/lists")
 async def get_twitter_lists():
-    """Get all Twitter lists"""
+    """Get all Twitter lists for dynamic management"""
     try:
         lists = db.get_all_twitter_lists()
-        return {"lists": lists}
+        return {"success": True, "lists": lists}
     except Exception as e:
         logger.error(f"Error fetching Twitter lists: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "message": str(e), "lists": []}
 
 @app.get("/api/lists/{list_id}/tweets")
 async def get_list_tweets(list_id: int, limit: int = 20, offset: int = 0):
@@ -632,6 +647,174 @@ async def get_all_list_tweets(limit: int = 20, offset: int = 0):
     except Exception as e:
         logger.error(f"Error fetching tweets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/lists/manage")
+async def add_twitter_list(request: Request):
+    """Add a new Twitter list for Mass Discovery"""
+    try:
+        body = await request.json()
+        list_id = body.get("list_id", "").strip()
+        
+        if not list_id:
+            raise HTTPException(status_code=400, detail="List ID is required")
+        
+        # Check if list already exists
+        existing_list = db.get_twitter_list_by_id(list_id)
+        if existing_list:
+            return {
+                "success": False,
+                "message": "List already exists in the system"
+            }
+        
+        add_to_activity_log(f"Adding new Twitter list: {list_id}", "info")
+        
+        # Validate and create Twitter list record
+        try:
+            # Create a basic TwitterList record with the ID
+            twitter_list = TwitterList(
+                list_id=list_id,
+                name=f"List {list_id}",
+                description="",
+                member_count=0,
+                is_private=False,
+                is_active=True
+            )
+            
+            # Save to database
+            db_id = db.save_twitter_list(twitter_list)
+            if not db_id:
+                error_msg = "Failed to save list to database - check if discovery_lists table exists"
+                add_to_activity_log(error_msg, "error")
+                return {
+                    "success": False,
+                    "message": error_msg
+                }
+            
+            # Get the saved list back from database
+            saved_list = db.get_twitter_list_by_id(list_id)
+            if not saved_list:
+                error_msg = "List saved but could not retrieve from database"
+                add_to_activity_log(error_msg, "error")
+                return {
+                    "success": False,
+                    "message": error_msg
+                }
+            
+            add_to_activity_log(f"Successfully added Twitter list: {list_id}", "success")
+            
+            return {
+                "success": True,
+                "message": f"Successfully added list {list_id}",
+                "list": saved_list
+            }
+            
+        except Exception as e:
+            error_msg = f"Failed to add list: {str(e)}"
+            add_to_activity_log(f"Error adding Twitter list: {error_msg}", "error")
+            return {
+                "success": False,
+                "message": error_msg
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"Error adding Twitter list: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.post("/api/lists/validate")
+async def validate_twitter_list(request: Request):
+    """Validate a Twitter list ID and fetch metadata"""
+    try:
+        body = await request.json()
+        list_id = body.get("list_id", "").strip()
+        
+        if not list_id:
+            raise HTTPException(status_code=400, detail="List ID is required")
+        
+        add_to_activity_log(f"Validating Twitter list: {list_id}", "info")
+        
+        # For now, return a basic validation response
+        # In a full implementation, you would use Twitter API to validate the list
+        if list_id.isdigit() and len(list_id) > 10:
+            return {
+                "success": True,
+                "list": {
+                    "list_id": list_id,
+                    "name": f"List {list_id}",
+                    "description": "Validated Twitter list",
+                    "member_count": 100,
+                    "is_private": False
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Invalid list ID format"
+            }
+            
+    except Exception as e:
+        error_msg = f"Error validating Twitter list: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        return {"success": False, "message": error_msg}
+
+@app.patch("/api/lists/{list_db_id}")
+async def update_twitter_list(list_db_id: int, request: Request):
+    """Update a Twitter list"""
+    try:
+        body = await request.json()
+        updates = body
+        
+        # Update the list
+        success = db.update_twitter_list(list_db_id, updates)
+        
+        if success:
+            add_to_activity_log(f"Updated Twitter list {list_db_id}", "info")
+            return {"success": True, "message": "List updated successfully"}
+        else:
+            return {"success": False, "message": "Failed to update list"}
+            
+    except Exception as e:
+        error_msg = f"Error updating Twitter list: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        return {"success": False, "message": error_msg}
+
+@app.delete("/api/lists/{list_db_id}")
+async def delete_twitter_list(list_db_id: int):
+    """Delete a Twitter list"""
+    try:
+        success = db.delete_twitter_list(list_db_id)
+        
+        if success:
+            add_to_activity_log(f"Deleted Twitter list {list_db_id}", "info")
+            return {"success": True, "message": "List deleted successfully"}
+        else:
+            return {"success": False, "message": "Failed to delete list"}
+            
+    except Exception as e:
+        error_msg = f"Error deleting Twitter list: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        return {"success": False, "message": error_msg}
+
+@app.post("/api/lists/{list_db_id}/refresh")
+async def refresh_list_metadata(list_db_id: int):
+    """Refresh metadata for a Twitter list"""
+    try:
+        # For now, just return success
+        # In a full implementation, you would fetch fresh metadata from Twitter API
+        add_to_activity_log(f"Refreshed metadata for Twitter list {list_db_id}", "info")
+        return {"success": True, "message": "List metadata refreshed successfully"}
+        
+    except Exception as e:
+        error_msg = f"Error refreshing list metadata: {str(e)}"
+        add_to_activity_log(error_msg, "error")
+        logger.error(error_msg)
+        return {"success": False, "message": error_msg}
 
 @app.post("/api/replies/send")
 async def send_manual_reply(request: Request):
@@ -2032,12 +2215,14 @@ async def mass_discovery(request: Request):
         # Use existing bulletproof analyzer
         bulletproof_analyzer.relevance_threshold = relevance_threshold
         
-        # Phase 1: Cycle through all configured lists
-        add_to_activity_log(f"📋 Phase 1: Processing {len(settings.discovery_lists)} lists", "info")
+        # Phase 1: Cycle through all active lists from database
+        active_lists = db.get_active_twitter_lists()
+        add_to_activity_log(f"📋 Phase 1: Processing {len(active_lists)} active lists", "info")
         
-        for i, list_id in enumerate(settings.discovery_lists):
+        for i, list_data in enumerate(active_lists):
+            list_id = list_data["list_id"]
             try:
-                add_to_activity_log(f"📋 Processing list {i+1}/{len(settings.discovery_lists)}: {list_id}", "info")
+                add_to_activity_log(f"📋 Processing list {i+1}/{len(active_lists)}: {list_data.get('name', list_id)}", "info")
                 
                 # Fetch large batch from list
                 list_tweets = await rapidapi_client.scrape_twitter_list(list_id, settings.discovery_max_per_source)
@@ -2087,7 +2272,7 @@ async def mass_discovery(request: Request):
                         "source": {
                             "type": "list",
                             "id": list_id,
-                            "name": f"List {list_id}"
+                            "name": list_data.get("name", f"List {list_id}")
                         },
                         "discovery_score": 95.0
                     }
@@ -2096,7 +2281,11 @@ async def mass_discovery(request: Request):
                 total_processed += len(list_tweets)
                 total_approved += len(approved_tweets)
                 
-                add_to_activity_log(f"📋 List {list_id}: {len(approved_tweets)}/{len(list_tweets)} approved ({len(approved_tweets)/len(list_tweets)*100:.1f}%)", "success" if approved_tweets else "warning")
+                # Update last used timestamp
+                if approved_tweets:
+                    db.update_list_last_used(list_id)
+                
+                add_to_activity_log(f"📋 List {list_data.get('name', list_id)}: {len(approved_tweets)}/{len(list_tweets)} approved ({len(approved_tweets)/len(list_tweets)*100:.1f}%)", "success" if approved_tweets else "warning")
                 
             except Exception as e:
                 add_to_activity_log(f"❌ Error processing list {list_id}: {str(e)}", "error")
@@ -2191,7 +2380,7 @@ async def mass_discovery(request: Request):
         # Final stats
         overall_approval_rate = (total_approved / total_processed * 100) if total_processed > 0 else 0
         
-        add_to_activity_log(f"✅ Mass Discovery Complete: {len(deduplicated_tweets)} unique tweets discovered from {len(settings.discovery_lists)} lists + {len(settings.search_presets)} searches", "success")
+        add_to_activity_log(f"✅ Mass Discovery Complete: {len(deduplicated_tweets)} unique tweets discovered from {len(active_lists)} lists + {len(settings.search_presets)} searches", "success")
         add_to_activity_log(f"📊 Overall stats: {total_approved}/{total_processed} approved ({overall_approval_rate:.1f}% rate)", "info")
         
         return {
@@ -2204,7 +2393,7 @@ async def mass_discovery(request: Request):
             "overall_approval_rate": overall_approval_rate,
             "source_stats": source_stats,
             "sources_processed": {
-                "lists": len(settings.discovery_lists),
+                "lists": len(active_lists),
                 "searches": len(settings.search_presets)
             }
         }

@@ -22,12 +22,6 @@ class EngagementMetrics(BaseModel):
     replies: int
     timestamp: datetime
 
-class TwitterList(BaseModel):
-    id: Optional[int] = None
-    name: str
-    list_url: str
-    last_scraped: Optional[datetime] = None
-    created_at: Optional[datetime] = None
 
 class ListTweet(BaseModel):
     id: Optional[int] = None
@@ -67,6 +61,18 @@ class TweetInteraction(BaseModel):
     interaction_id: Optional[str] = None  # ID returned by Twitter API
     created_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+class TwitterList(BaseModel):
+    id: Optional[int] = None
+    list_id: str  # Twitter list ID
+    name: str
+    description: Optional[str] = None
+    member_count: Optional[int] = None
+    is_private: bool = False
+    is_active: bool = True  # Whether to use in mass discovery
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    last_used: Optional[datetime] = None
 
 class ProcessedTweet(BaseModel):
     id: Optional[int] = None
@@ -215,33 +221,160 @@ class Database:
     def save_twitter_list(self, twitter_list: TwitterList) -> Optional[int]:
         """Save a Twitter list and return its ID"""
         try:
+            if not self.client:
+                print("Supabase client not configured, skipping Twitter list save")
+                return None
+                
             data = {
+                "list_id": twitter_list.list_id,
                 "name": twitter_list.name,
-                "list_url": twitter_list.list_url
+                "description": twitter_list.description,
+                "member_count": twitter_list.member_count,
+                "is_private": twitter_list.is_private,
+                "is_active": twitter_list.is_active,
+                "last_used": twitter_list.last_used.isoformat() if twitter_list.last_used else None
             }
-            result = self.client.table("twitter_lists").insert(data).execute()
+            result = self.client.table("discovery_lists").insert(data).execute()
             return result.data[0]["id"] if result.data else None
         except Exception as e:
             print(f"Error saving Twitter list: {e}")
             return None
     
-    def get_twitter_list_by_url(self, list_url: str) -> Optional[Dict[str, Any]]:
-        """Get Twitter list by URL"""
+    def get_twitter_list_by_id(self, list_id: str) -> Optional[Dict[str, Any]]:
+        """Get Twitter list by Twitter list ID"""
         try:
-            result = self.client.table("twitter_lists").select("*").eq("list_url", list_url).execute()
+            if not self.client:
+                return None
+            result = self.client.table("discovery_lists").select("*").eq("list_id", list_id).execute()
             return result.data[0] if result.data else None
         except Exception as e:
             print(f"Error fetching Twitter list: {e}")
             return None
     
-    def update_list_scraped_time(self, list_id: int) -> bool:
-        """Update the last scraped timestamp for a list"""
+    def get_twitter_list_by_url(self, list_url: str) -> Optional[Dict[str, Any]]:
+        """Get Twitter list by URL (for backward compatibility)"""
         try:
-            data = {"last_scraped": datetime.now().isoformat()}
-            self.client.table("twitter_lists").update(data).eq("id", list_id).execute()
+            if not self.client:
+                return None
+            # Extract list ID from URL if it's a full URL, otherwise treat as ID
+            if "twitter.com" in list_url or "x.com" in list_url:
+                # Extract ID from URL like https://twitter.com/i/lists/1234567890
+                import re
+                match = re.search(r'/lists/(\d+)', list_url)
+                if match:
+                    list_id = match.group(1)
+                else:
+                    return None
+            else:
+                # Assume it's already a list ID
+                list_id = list_url
+            
+            result = self.client.table("discovery_lists").select("*").eq("list_id", list_id).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Error fetching Twitter list by URL: {e}")
+            return None
+    
+    def get_all_twitter_lists(self) -> List[Dict[str, Any]]:
+        """Get all Twitter lists for mass discovery"""
+        try:
+            if not self.client:
+                return []
+            result = self.client.table("discovery_lists").select("*").order("created_at", desc=True).execute()
+            return result.data
+        except Exception as e:
+            print(f"Error fetching Twitter lists: {e}")
+            # Fallback: return hardcoded lists if table doesn't exist
+            if "Could not find the table" in str(e):
+                print("discovery_lists table not found, returning hardcoded lists as fallback")
+                return [
+                    {
+                        "id": 1,
+                        "list_id": "1957324919269929248",
+                        "name": "Main AI/Tech List",
+                        "description": "Primary AI and technology focused Twitter list",
+                        "is_active": True,
+                        "created_at": "2025-01-01T00:00:00Z"
+                    },
+                    {
+                        "id": 2,
+                        "list_id": "1278784207641284609", 
+                        "name": "Secondary AI List",
+                        "description": "Secondary AI and ML focused Twitter list",
+                        "is_active": True,
+                        "created_at": "2025-01-01T00:00:00Z"
+                    }
+                ]
+            return []
+    
+    def get_active_twitter_lists(self) -> List[Dict[str, Any]]:
+        """Get only active Twitter lists for mass discovery"""
+        try:
+            if not self.client:
+                return []
+            result = self.client.table("discovery_lists").select("*").eq("is_active", True).order("created_at", desc=True).execute()
+            return result.data
+        except Exception as e:
+            print(f"Error fetching active Twitter lists: {e}")
+            # Fallback: return hardcoded active lists if table doesn't exist
+            if "Could not find the table" in str(e):
+                print("discovery_lists table not found, returning hardcoded active lists as fallback")
+                return [
+                    {
+                        "id": 1,
+                        "list_id": "1957324919269929248",
+                        "name": "Main AI/Tech List", 
+                        "description": "Primary AI and technology focused Twitter list",
+                        "is_active": True,
+                        "created_at": "2025-01-01T00:00:00Z"
+                    },
+                    {
+                        "id": 2,
+                        "list_id": "1278784207641284609",
+                        "name": "Secondary AI List",
+                        "description": "Secondary AI and ML focused Twitter list", 
+                        "is_active": True,
+                        "created_at": "2025-01-01T00:00:00Z"
+                    }
+                ]
+            return []
+    
+    def update_twitter_list(self, db_id: int, updates: Dict[str, Any]) -> bool:
+        """Update a Twitter list"""
+        try:
+            if not self.client:
+                return False
+            
+            # Add updated_at timestamp
+            updates["updated_at"] = datetime.now().isoformat()
+            
+            self.client.table("discovery_lists").update(updates).eq("id", db_id).execute()
             return True
         except Exception as e:
-            print(f"Error updating list scraped time: {e}")
+            print(f"Error updating Twitter list: {e}")
+            return False
+    
+    def delete_twitter_list(self, db_id: int) -> bool:
+        """Delete a Twitter list"""
+        try:
+            if not self.client:
+                return False
+            self.client.table("discovery_lists").delete().eq("id", db_id).execute()
+            return True
+        except Exception as e:
+            print(f"Error deleting Twitter list: {e}")
+            return False
+    
+    def update_list_last_used(self, list_id: str) -> bool:
+        """Update the last used timestamp for a list"""
+        try:
+            if not self.client:
+                return False
+            data = {"last_used": datetime.now().isoformat()}
+            self.client.table("discovery_lists").update(data).eq("list_id", list_id).execute()
+            return True
+        except Exception as e:
+            print(f"Error updating list last used time: {e}")
             return False
     
     def save_list_tweet(self, list_tweet: ListTweet) -> bool:
@@ -283,14 +416,6 @@ class Database:
             print(f"Error fetching list tweets: {e}")
             return []
     
-    def get_all_twitter_lists(self) -> List[Dict[str, Any]]:
-        """Get all Twitter lists"""
-        try:
-            result = self.client.table("twitter_lists").select("*").order("created_at", desc=True).execute()
-            return result.data
-        except Exception as e:
-            print(f"Error fetching Twitter lists: {e}")
-            return []
     
     def save_manual_reply(self, manual_reply: ManualReply) -> Optional[int]:
         """Save a manual reply record"""

@@ -20,6 +20,9 @@ class Settings:
         self.apify_api_token: str = os.getenv("APIFY_API_TOKEN", "")
         self.apify_user_id: str = os.getenv("APIFY_USER_ID", "")
         self.n8n_webhook_url: str = os.getenv("N8N_WEBHOOK_URL", "")
+        self.n8n_like_webhook_url: str = os.getenv("N8N_LIKE_WEBHOOK_URL", "")
+        self.n8n_rt_webhook_url: str = os.getenv("N8N_RT_WEBHOOK_URL", "")
+        self.n8n_qrt_webhook_url: str = os.getenv("N8N_QRT_WEBHOOK_URL", "")
         
         self.rapidapi_key: str = os.getenv("RAPIDAPI_KEY", "")
         self.rapidapi_app: str = os.getenv("RAPIDAPI_APP", "")

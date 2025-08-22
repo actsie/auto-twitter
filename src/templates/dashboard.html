@@ -594,6 +594,147 @@
             margin-top: 1rem;
         }
         
+        /* Lists Management Styles */
+        .list-card {
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .list-card:hover {
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+        }
+        
+        .list-card.inactive {
+            opacity: 0.6;
+            border-color: #ccc;
+        }
+        
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .list-info {
+            flex-grow: 1;
+        }
+        
+        .list-name {
+            font-weight: 600;
+            color: #1d1d1f;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+        
+        .list-meta {
+            font-size: 0.85rem;
+            color: #666;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .list-actions {
+            display: flex;
+            gap: 5px;
+            align-items: flex-start;
+        }
+        
+        .list-actions button {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .list-actions button:hover {
+            background: #f0f8ff;
+            border-color: #007aff;
+        }
+        
+        .list-actions button.danger:hover {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #f44336;
+        }
+        
+        .list-toggle {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            margin-left: 10px;
+        }
+        
+        .list-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .list-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        
+        .list-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        .list-toggle input:checked + .list-toggle-slider {
+            background-color: #007aff;
+        }
+        
+        .list-toggle input:checked + .list-toggle-slider:before {
+            transform: translateX(20px);
+        }
+        
+        .validation-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .validation-info.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        
+        .validation-info.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        
         /* Mass Discovery Styles */
         .discovery-grid {
             display: grid;
@@ -699,6 +840,111 @@
         .discovery-tweet-actions button:hover {
             background: #f0f8ff;
             border-color: #007aff;
+        }
+        
+        /* Discovery Reply Section */
+        .discovery-reply-section {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e5e7;
+            animation: slideDown 0.2s ease;
+        }
+        
+        .discovery-reply-section.active {
+            display: block;
+        }
+        
+        .discovery-reply-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+        
+        .discovery-reply-textarea:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+        
+        .discovery-reply-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .discovery-character-counter {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .discovery-character-counter.warning {
+            color: #ff9500;
+        }
+        
+        .discovery-character-counter.error {
+            color: #ff3b30;
+        }
+        
+        .discovery-reply-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .discovery-reply-buttons button {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .discovery-reply-buttons button:hover {
+            background: #f0f8ff;
+            border-color: #007aff;
+        }
+        
+        .discovery-reply-buttons button.primary {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        
+        .discovery-reply-buttons button.primary:hover {
+            background: #0056cc;
+        }
+        
+        .discovery-reply-buttons button.primary:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .discovery-reply-buttons button.success {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .batch-tweet-card {
@@ -1213,6 +1459,45 @@
             </div>
         </div>
         
+        <!-- Lists Management -->
+        <div class="card" style="margin-top: 40px;">
+            <h3>📋 Lists Management</h3>
+            <p>Manage Twitter lists for Mass Discovery mode:</p>
+            <br>
+            
+            <!-- Add New List -->
+            <div class="form-group">
+                <h4>➕ Add New List</h4>
+                <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px;">
+                    <div>
+                        <label for="new-list-id" style="font-size: 0.9rem; display: block; margin-bottom: 5px;">Twitter List ID:</label>
+                        <input type="text" id="new-list-id" placeholder="e.g., 1957324919269929248" 
+                               style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <button class="button" onclick="addTwitterList()" id="add-list-btn">📋 Add List</button>
+                    <button class="button button-secondary" onclick="validateListId()" id="validate-list-btn">🔍 Validate</button>
+                </div>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                    Enter a Twitter List ID to add to Mass Discovery sources. The system will fetch metadata automatically.
+                </div>
+            </div>
+            
+            <!-- Current Lists -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4>📝 Current Lists</h4>
+                    <button class="button button-secondary" onclick="refreshTwitterLists()" id="refresh-lists-btn">🔄 Refresh</button>
+                </div>
+                
+                <div id="current-lists-container">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📡</div>
+                        Loading lists...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- NEW: Mass Discovery Dashboard -->
         <div class="card" style="margin-top: 40px;">
             <h3>🔍 Mass Discovery Mode</h3>
@@ -1289,6 +1574,55 @@
                 
                 <div id="discovered-tweets-container" class="discovery-grid">
                     <!-- Discovered tweet cards will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Engagement Features -->
+        <div class="card" style="margin-top: 40px;">
+            <h3>🧪 Test Engagement Features</h3>
+            <p>Test Like, RT, and QRT functionality on any tweet without mass discovery API costs:</p>
+            <br>
+            
+            <div class="form-group">
+                <label>🔗 Tweet URL:</label>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <input type="text" id="test-tweet-url" placeholder="https://twitter.com/user/status/1234567890 or https://x.com/user/status/1234567890" 
+                           style="flex: 1; min-width: 300px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button class="button" onclick="extractTweetId()">⚡ Extract ID</button>
+                </div>
+                
+                <div id="extracted-tweet-info" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Extracted Tweet ID:</div>
+                    <div style="font-weight: bold; font-family: monospace;" id="extracted-tweet-id"></div>
+                </div>
+                
+                <div id="test-engagement-actions" style="display: none;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                        <button class="button" onclick="testLikeTweet()" id="test-like-btn">❤️ Test Like</button>
+                        <button class="button" onclick="testRetweetTweet()" id="test-rt-btn">🔄 Test RT</button>
+                        <button class="button" onclick="toggleTestQuoteBox()" id="test-qrt-btn">💬 Test QRT</button>
+                    </div>
+                    
+                    <div class="discovery-reply-section" id="test-quote-section">
+                        <div style="margin-bottom: 10px; font-size: 0.9rem; color: #666;">
+                            💬 Quote retweet text:
+                        </div>
+                        <textarea 
+                            class="discovery-reply-textarea" 
+                            id="test-quote-textarea"
+                            placeholder="Add your commentary for the quote tweet..."
+                            maxlength="240"
+                            oninput="updateTestQuoteCharacterCount()"
+                        ></textarea>
+                        <div class="discovery-reply-controls">
+                            <div class="discovery-character-counter" id="test-quote-counter">0/240</div>
+                            <div class="discovery-reply-buttons">
+                                <button onclick="cancelTestQuote()">Cancel</button>
+                                <button class="primary" onclick="sendTestQuote()" id="test-quote-send-btn">🔄 Send Quote Tweet</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3335,6 +3669,265 @@
             }, 4000);
         }
         
+        // Lists Management Functions
+        async function loadTwitterLists() {
+            try {
+                const response = await fetch('/api/lists');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayTwitterLists(result.lists);
+                } else {
+                    displayTwitterListsError('Failed to load lists');
+                }
+            } catch (error) {
+                console.error('Error loading Twitter lists:', error);
+                displayTwitterListsError('Error loading lists');
+            }
+        }
+        
+        function displayTwitterLists(lists) {
+            const container = document.getElementById('current-lists-container');
+            
+            if (!lists || lists.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📋</div>
+                        <div>No lists configured yet</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px;">Add a Twitter List ID above to get started</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = lists.map(list => `
+                <div class="list-card ${!list.is_active ? 'inactive' : ''}">
+                    <div class="list-header">
+                        <div class="list-info">
+                            <div class="list-name">${escapeHtml(list.name)}</div>
+                            <div class="list-meta">
+                                <span>🆔 ${list.list_id}</span>
+                                ${list.member_count ? `<span>👥 ${list.member_count} members</span>` : ''}
+                                ${list.is_private ? '<span>🔒 Private</span>' : '<span>🌐 Public</span>'}
+                                ${list.last_used ? `<span>🕒 Last used: ${formatDate(list.last_used)}</span>` : ''}
+                            </div>
+                            ${list.description ? `<div style="margin-top: 8px; font-size: 0.85rem; color: #555;">${escapeHtml(list.description)}</div>` : ''}
+                        </div>
+                        <div class="list-actions">
+                            <label class="list-toggle">
+                                <input type="checkbox" ${list.is_active ? 'checked' : ''} onchange="toggleListActive(${list.id}, this.checked)">
+                                <span class="list-toggle-slider"></span>
+                            </label>
+                            <button onclick="refreshListMetadata(${list.id})" title="Refresh metadata">🔄</button>
+                            <button class="danger" onclick="deleteTwitterList(${list.id})" title="Delete list">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayTwitterListsError(message) {
+            const container = document.getElementById('current-lists-container');
+            container.innerHTML = `
+                <div style="text-align: center; color: #ff3b30; padding: 20px;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                    <div>${message}</div>
+                    <button class="button button-secondary" onclick="loadTwitterLists()" style="margin-top: 10px;">🔄 Retry</button>
+                </div>
+            `;
+        }
+        
+        async function addTwitterList() {
+            const listIdInput = document.getElementById('new-list-id');
+            const listId = listIdInput.value.trim();
+            const btn = document.getElementById('add-list-btn');
+            
+            if (!listId) {
+                showNotification('Please enter a Twitter List ID', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Adding...';
+            
+            try {
+                const response = await fetch('/api/lists/manage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ list_id: listId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ Successfully added list: ${result.list.name}`, 'success');
+                    listIdInput.value = '';
+                    loadTwitterLists();
+                    updateDiscoverySourceCount();
+                } else {
+                    showNotification(`❌ Failed to add list: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error adding Twitter list:', error);
+                showNotification('❌ Error adding list', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📋 Add List';
+            }
+        }
+        
+        async function validateListId() {
+            const listIdInput = document.getElementById('new-list-id');
+            const listId = listIdInput.value.trim();
+            const btn = document.getElementById('validate-list-btn');
+            
+            if (!listId) {
+                showNotification('Please enter a Twitter List ID', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Validating...';
+            
+            // Remove any existing validation info
+            const existingValidation = document.querySelector('.validation-info');
+            if (existingValidation) {
+                existingValidation.remove();
+            }
+            
+            try {
+                const response = await fetch('/api/lists/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ list_id: listId })
+                });
+                
+                const result = await response.json();
+                
+                // Add validation info after the input
+                const validationDiv = document.createElement('div');
+                validationDiv.className = `validation-info ${result.success ? 'success' : 'error'}`;
+                
+                if (result.success) {
+                    const list = result.list;
+                    validationDiv.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">✅ Valid List Found</div>
+                        <div><strong>Name:</strong> ${escapeHtml(list.name)}</div>
+                        ${list.description ? `<div><strong>Description:</strong> ${escapeHtml(list.description)}</div>` : ''}
+                        <div><strong>Members:</strong> ${list.member_count} | <strong>Privacy:</strong> ${list.is_private ? 'Private' : 'Public'}</div>
+                    `;
+                } else {
+                    validationDiv.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">❌ Validation Failed</div>
+                        <div>${result.message}</div>
+                    `;
+                }
+                
+                listIdInput.parentNode.appendChild(validationDiv);
+                
+            } catch (error) {
+                console.error('Error validating list:', error);
+                showNotification('❌ Error validating list', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Validate';
+            }
+        }
+        
+        async function toggleListActive(listDbId, isActive) {
+            try {
+                const response = await fetch(`/api/lists/${listDbId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ is_active: isActive })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ List ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                    loadTwitterLists();
+                    updateDiscoverySourceCount();
+                } else {
+                    showNotification(`❌ Failed to update list: ${result.message}`, 'error');
+                    // Reload to reset the toggle state
+                    loadTwitterLists();
+                }
+            } catch (error) {
+                console.error('Error toggling list active state:', error);
+                showNotification('❌ Error updating list', 'error');
+                loadTwitterLists();
+            }
+        }
+        
+        async function deleteTwitterList(listDbId) {
+            if (!confirm('Are you sure you want to remove this list from Mass Discovery? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/lists/${listDbId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ List removed successfully', 'success');
+                    loadTwitterLists();
+                    updateDiscoverySourceCount();
+                } else {
+                    showNotification(`❌ Failed to remove list: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting list:', error);
+                showNotification('❌ Error removing list', 'error');
+            }
+        }
+        
+        async function refreshListMetadata(listDbId) {
+            try {
+                const response = await fetch(`/api/lists/${listDbId}/refresh`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ List metadata refreshed', 'success');
+                    loadTwitterLists();
+                } else {
+                    showNotification(`❌ Failed to refresh metadata: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing list metadata:', error);
+                showNotification('❌ Error refreshing metadata', 'error');
+            }
+        }
+        
+        function refreshTwitterLists() {
+            loadTwitterLists();
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        
         // Mass Discovery Functions
         let discoveredTweets = [];
         let selectedDiscoveredTweets = new Set();
@@ -3346,22 +3939,41 @@
         
         async function loadDiscoverySourceCount() {
             try {
-                const response = await fetch('/api/search/presets');
-                const result = await response.json();
+                // Get both search presets and active lists
+                const [searchResponse, listsResponse] = await Promise.all([
+                    fetch('/api/search/presets'),
+                    fetch('/api/lists')
+                ]);
                 
-                if (result.success) {
-                    const searchCount = Object.keys(result.presets).length;
-                    // Assuming 2 lists from config (can be made dynamic later)
-                    const listCount = 2;
+                const searchResult = await searchResponse.json();
+                const listsResult = await listsResponse.json();
+                
+                if (searchResult.success && listsResult.success) {
+                    const searchCount = Object.keys(searchResult.presets).length;
+                    const activeLists = listsResult.lists.filter(list => list.is_active);
+                    const listCount = activeLists.length;
                     const totalSources = listCount + searchCount;
                     
                     document.getElementById('discovery-source-count').textContent = 
                         `${totalSources} sources (${listCount} lists + ${searchCount} searches)`;
+                } else {
+                    // Fallback if one API fails
+                    const searchCount = searchResult.success ? Object.keys(searchResult.presets).length : 0;
+                    const listCount = listsResult.success ? listsResult.lists.filter(list => list.is_active).length : 0;
+                    const totalSources = listCount + searchCount;
+                    
+                    document.getElementById('discovery-source-count').textContent = 
+                        totalSources > 0 ? `${totalSources} sources` : 'multiple sources';
                 }
             } catch (error) {
                 console.error('Error loading source count:', error);
                 document.getElementById('discovery-source-count').textContent = 'multiple sources';
             }
+        }
+        
+        function updateDiscoverySourceCount() {
+            // Helper function to update the count when lists are modified
+            loadDiscoverySourceCount();
         }
         
         async function startMassDiscovery() {
@@ -3481,6 +4093,46 @@
                         <button onclick="selectDiscoveredTweet('${tweet.id}', this)">☐ Select</button>
                         <button onclick="window.open('${tweet.url}', '_blank')">🔗 View</button>
                         <button onclick="likeDiscoveredTweet('${tweet.id}')">❤️ Like</button>
+                        <button onclick="retweetDiscoveredTweet('${tweet.id}')">🔄 RT</button>
+                        <button onclick="toggleDiscoveryQuoteBox('${tweet.id}', '${tweet.author.username}')">💬 QRT</button>
+                        <button onclick="toggleDiscoveryReplyBox('${tweet.id}', '${tweet.author.username}')">💬 Reply</button>
+                    </div>
+                    
+                    <div class="discovery-reply-section" id="reply-section-${tweet.id}">
+                        <textarea 
+                            class="discovery-reply-textarea" 
+                            id="reply-textarea-${tweet.id}"
+                            placeholder="Write your reply to @${tweet.author.username}..."
+                            maxlength="280"
+                            oninput="updateDiscoveryCharacterCount('${tweet.id}')"
+                        ></textarea>
+                        <div class="discovery-reply-controls">
+                            <div class="discovery-character-counter" id="char-counter-${tweet.id}">0/280</div>
+                            <div class="discovery-reply-buttons">
+                                <button onclick="cancelDiscoveryReply('${tweet.id}')">Cancel</button>
+                                <button class="primary" onclick="sendDiscoveryReply('${tweet.id}', '${tweet.author.username}')" id="send-btn-${tweet.id}">📤 Send Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="discovery-reply-section" id="quote-section-${tweet.id}">
+                        <div style="margin-bottom: 10px; font-size: 0.9rem; color: #666;">
+                            💬 Quote retweet with your comment:
+                        </div>
+                        <textarea 
+                            class="discovery-reply-textarea" 
+                            id="quote-textarea-${tweet.id}"
+                            placeholder="Add your commentary to this quote tweet..."
+                            maxlength="240"
+                            oninput="updateDiscoveryQuoteCharacterCount('${tweet.id}')"
+                        ></textarea>
+                        <div class="discovery-reply-controls">
+                            <div class="discovery-character-counter" id="quote-counter-${tweet.id}">0/240</div>
+                            <div class="discovery-reply-buttons">
+                                <button onclick="cancelDiscoveryQuote('${tweet.id}')">Cancel</button>
+                                <button class="primary" onclick="sendDiscoveryQuote('${tweet.id}', '${tweet.author.username}')" id="quote-btn-${tweet.id}">🔄 Quote Tweet</button>
+                            </div>
+                        </div>
                     </div>
                 `;
                 
@@ -3655,9 +4307,587 @@
             }
         }
         
+        // Discovery Reply Functions
+        function toggleDiscoveryReplyBox(tweetId, username) {
+            const replySection = document.getElementById(`reply-section-${tweetId}`);
+            const replyButton = event.target;
+            
+            if (replySection.classList.contains('active')) {
+                // Close reply box
+                replySection.classList.remove('active');
+                replyButton.textContent = '💬 Reply';
+                
+                // Clear the textarea
+                document.getElementById(`reply-textarea-${tweetId}`).value = '';
+                updateDiscoveryCharacterCount(tweetId);
+            } else {
+                // Open reply box
+                replySection.classList.add('active');
+                replyButton.textContent = '💬 Close Reply';
+                
+                // Focus on textarea
+                setTimeout(() => {
+                    document.getElementById(`reply-textarea-${tweetId}`).focus();
+                }, 100);
+            }
+        }
+        
+        function updateDiscoveryCharacterCount(tweetId) {
+            const textarea = document.getElementById(`reply-textarea-${tweetId}`);
+            const counter = document.getElementById(`char-counter-${tweetId}`);
+            const sendBtn = document.getElementById(`send-btn-${tweetId}`);
+            
+            const length = textarea.value.length;
+            const remaining = 280 - length;
+            
+            counter.textContent = `${length}/280`;
+            
+            // Update counter color based on remaining characters
+            counter.className = 'discovery-character-counter';
+            if (remaining < 20) {
+                counter.classList.add('error');
+            } else if (remaining < 50) {
+                counter.classList.add('warning');
+            }
+            
+            // Disable send button if over limit or empty
+            sendBtn.disabled = length === 0 || length > 280;
+        }
+        
+        function cancelDiscoveryReply(tweetId) {
+            const replySection = document.getElementById(`reply-section-${tweetId}`);
+            const textarea = document.getElementById(`reply-textarea-${tweetId}`);
+            
+            // Find the reply button within the same card
+            const card = replySection.closest('.discovery-tweet-card');
+            const replyButton = card.querySelector(`button[onclick*="toggleDiscoveryReplyBox"]`);
+            
+            // Close reply box
+            replySection.classList.remove('active');
+            if (replyButton) {
+                replyButton.textContent = '💬 Reply';
+            }
+            
+            // Clear textarea
+            if (textarea) {
+                textarea.value = '';
+                updateDiscoveryCharacterCount(tweetId);
+            }
+        }
+        
+        async function sendDiscoveryReply(tweetId, username) {
+            const textarea = document.getElementById(`reply-textarea-${tweetId}`);
+            const sendBtn = document.getElementById(`send-btn-${tweetId}`);
+            const replyText = textarea.value.trim();
+            
+            if (!replyText) {
+                showNotification('⚠️ Please enter a reply message', 'warning');
+                return;
+            }
+            
+            if (replyText.length > 280) {
+                showNotification('⚠️ Reply is too long (max 280 characters)', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ Sending...';
+            
+            try {
+                const response = await fetch('/api/replies/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_id: tweetId,
+                        reply_text: replyText,
+                        target_username: username
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Success feedback
+                    showNotification(`✅ Reply sent successfully via ${result.method_used}`, 'success');
+                    
+                    // Update UI to show replied state
+                    sendBtn.textContent = '✅ Replied';
+                    sendBtn.classList.remove('primary');
+                    sendBtn.classList.add('success');
+                    
+                    // Update the reply button
+                    const replySection = document.getElementById(`reply-section-${tweetId}`);
+                    const card = replySection.closest('.discovery-tweet-card');
+                    const replyButton = card.querySelector(`button[onclick*="toggleDiscoveryReplyBox"]`);
+                    
+                    if (replyButton) {
+                        replyButton.textContent = '✅ Replied';
+                        replyButton.disabled = true;
+                    }
+                    
+                    // Close reply box after a short delay
+                    setTimeout(() => {
+                        cancelDiscoveryReply(tweetId);
+                    }, 1500);
+                    
+                } else {
+                    throw new Error(result.message || 'Reply failed');
+                }
+                
+            } catch (error) {
+                console.error('Reply error:', error);
+                showNotification(`❌ Reply failed: ${error.message}`, 'error');
+                
+                // Reset button state
+                sendBtn.disabled = false;
+                sendBtn.textContent = originalText;
+            }
+        }
+        
+        // Discovery RT and QRT Functions
+        async function retweetDiscoveredTweet(tweetId) {
+            const retweetButton = event.target;
+            
+            if (retweetButton.disabled) return;
+            
+            // Show loading state
+            const originalText = retweetButton.textContent;
+            retweetButton.disabled = true;
+            retweetButton.textContent = '⏳ Retweeting...';
+            
+            try {
+                const response = await fetch(`/api/tweets/${tweetId}/retweet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: `https://twitter.com/x/status/${tweetId}`
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ Tweet retweeted successfully via ${result.method_used}`, 'success');
+                    
+                    // Update button to show retweeted state
+                    retweetButton.textContent = '✅ Retweeted';
+                    retweetButton.classList.remove('primary');
+                    retweetButton.classList.add('success');
+                    
+                } else if (result.already_retweeted) {
+                    showNotification('ℹ️ Tweet already retweeted', 'info');
+                    retweetButton.textContent = '✅ Retweeted';
+                    retweetButton.classList.add('success');
+                } else {
+                    throw new Error(result.message || 'Retweet failed');
+                }
+                
+            } catch (error) {
+                console.error('Retweet error:', error);
+                showNotification(`❌ Retweet failed: ${error.message}`, 'error');
+                
+                // Reset button state
+                retweetButton.disabled = false;
+                retweetButton.textContent = originalText;
+            }
+        }
+        
+        function toggleDiscoveryQuoteBox(tweetId, username) {
+            const quoteSection = document.getElementById(`quote-section-${tweetId}`);
+            const quoteButton = event.target;
+            
+            if (quoteSection.classList.contains('active')) {
+                // Close quote box
+                quoteSection.classList.remove('active');
+                quoteButton.textContent = '💬 QRT';
+                
+                // Clear the textarea
+                document.getElementById(`quote-textarea-${tweetId}`).value = '';
+                updateDiscoveryQuoteCharacterCount(tweetId);
+            } else {
+                // Open quote box
+                quoteSection.classList.add('active');
+                quoteButton.textContent = '💬 Close QRT';
+                
+                // Focus on textarea
+                setTimeout(() => {
+                    document.getElementById(`quote-textarea-${tweetId}`).focus();
+                }, 100);
+            }
+        }
+        
+        function updateDiscoveryQuoteCharacterCount(tweetId) {
+            const textarea = document.getElementById(`quote-textarea-${tweetId}`);
+            const counter = document.getElementById(`quote-counter-${tweetId}`);
+            const quoteBtn = document.getElementById(`quote-btn-${tweetId}`);
+            
+            const length = textarea.value.length;
+            const remaining = 240 - length; // Quote tweets have less space
+            
+            counter.textContent = `${length}/240`;
+            
+            // Update counter color based on remaining characters
+            counter.className = 'discovery-character-counter';
+            if (remaining < 10) {
+                counter.classList.add('error');
+            } else if (remaining < 30) {
+                counter.classList.add('warning');
+            }
+            
+            // Disable quote button if over limit (allow empty for simple retweet)
+            quoteBtn.disabled = length > 240;
+        }
+        
+        function cancelDiscoveryQuote(tweetId) {
+            const quoteSection = document.getElementById(`quote-section-${tweetId}`);
+            const textarea = document.getElementById(`quote-textarea-${tweetId}`);
+            
+            // Find the quote button within the same card
+            const card = quoteSection.closest('.discovery-tweet-card');
+            const quoteButton = card.querySelector(`button[onclick*="toggleDiscoveryQuoteBox"]`);
+            
+            // Close quote box
+            quoteSection.classList.remove('active');
+            if (quoteButton) {
+                quoteButton.textContent = '💬 QRT';
+            }
+            
+            // Clear textarea
+            if (textarea) {
+                textarea.value = '';
+                updateDiscoveryQuoteCharacterCount(tweetId);
+            }
+        }
+        
+        async function sendDiscoveryQuote(tweetId, username) {
+            const textarea = document.getElementById(`quote-textarea-${tweetId}`);
+            const quoteBtn = document.getElementById(`quote-btn-${tweetId}`);
+            const quoteText = textarea.value.trim();
+            
+            if (quoteText.length > 240) {
+                showNotification('⚠️ Quote is too long (max 240 characters)', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = quoteBtn.textContent;
+            quoteBtn.disabled = true;
+            quoteBtn.textContent = '⏳ Quote Tweeting...';
+            
+            try {
+                // Use n8n webhook for quote tweets
+                const response = await fetch('https://stacydj.app.n8n.cloud/webhook/twitter-quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        body: {
+                            tweet_id: tweetId,
+                            quote_text: quoteText
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Success feedback
+                    showNotification(`✅ Quote tweet sent successfully!`, 'success');
+                    
+                    // Update UI to show quoted state
+                    quoteBtn.textContent = '✅ Quoted';
+                    quoteBtn.classList.remove('primary');
+                    quoteBtn.classList.add('success');
+                    
+                    // Update the quote button
+                    const quoteSection = document.getElementById(`quote-section-${tweetId}`);
+                    const card = quoteSection.closest('.discovery-tweet-card');
+                    const quoteButton = card.querySelector(`button[onclick*="toggleDiscoveryQuoteBox"]`);
+                    
+                    if (quoteButton) {
+                        quoteButton.textContent = '✅ Quoted';
+                        quoteButton.disabled = true;
+                    }
+                    
+                    // Close quote box after a short delay
+                    setTimeout(() => {
+                        cancelDiscoveryQuote(tweetId);
+                    }, 1500);
+                    
+                } else {
+                    throw new Error(result.message || 'Quote tweet failed');
+                }
+                
+            } catch (error) {
+                console.error('Quote tweet error:', error);
+                showNotification(`❌ Quote tweet failed: ${error.message}`, 'error');
+                
+                // Reset button state
+                quoteBtn.disabled = false;
+                quoteBtn.textContent = originalText;
+            }
+        }
+        
+        // Test Engagement Functions
+        let testTweetId = null;
+        
+        function extractTweetId() {
+            const urlInput = document.getElementById('test-tweet-url');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showNotification('⚠️ Please enter a tweet URL', 'warning');
+                return;
+            }
+            
+            // Extract tweet ID from various URL formats
+            let tweetId = null;
+            
+            // Pattern 1: https://twitter.com/user/status/1234567890
+            // Pattern 2: https://x.com/user/status/1234567890  
+            // Pattern 3: URLs with query parameters
+            const urlPattern = /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
+            const match = url.match(urlPattern);
+            
+            if (match) {
+                tweetId = match[1];
+            } else if (/^\d+$/.test(url)) {
+                // Direct tweet ID input
+                tweetId = url;
+            } else {
+                showNotification('❌ Invalid tweet URL. Use format: https://twitter.com/user/status/1234567890', 'error');
+                return;
+            }
+            
+            // Store and display the extracted ID
+            testTweetId = tweetId;
+            document.getElementById('extracted-tweet-id').textContent = tweetId;
+            document.getElementById('extracted-tweet-info').style.display = 'block';
+            document.getElementById('test-engagement-actions').style.display = 'block';
+            
+            showNotification('✅ Tweet ID extracted successfully!', 'success');
+        }
+        
+        async function testLikeTweet() {
+            if (!testTweetId) {
+                showNotification('⚠️ Please extract a tweet ID first', 'warning');
+                return;
+            }
+            
+            const likeBtn = document.getElementById('test-like-btn');
+            const originalText = likeBtn.textContent;
+            
+            likeBtn.disabled = true;
+            likeBtn.textContent = '⏳ Testing Like...';
+            
+            try {
+                const response = await fetch(`/api/tweets/${testTweetId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: `https://twitter.com/x/status/${testTweetId}`
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ Like test successful via ${result.method_used}`, 'success');
+                    likeBtn.textContent = '✅ Like Worked';
+                    likeBtn.classList.add('success');
+                } else if (result.already_liked) {
+                    showNotification('ℹ️ Tweet already liked', 'info');
+                    likeBtn.textContent = '✅ Already Liked';
+                } else {
+                    throw new Error(result.message || 'Like test failed');
+                }
+                
+            } catch (error) {
+                console.error('Test like error:', error);
+                showNotification(`❌ Like test failed: ${error.message}`, 'error');
+                likeBtn.disabled = false;
+                likeBtn.textContent = originalText;
+            }
+        }
+        
+        async function testRetweetTweet() {
+            if (!testTweetId) {
+                showNotification('⚠️ Please extract a tweet ID first', 'warning');
+                return;
+            }
+            
+            const rtBtn = document.getElementById('test-rt-btn');
+            const originalText = rtBtn.textContent;
+            
+            rtBtn.disabled = true;
+            rtBtn.textContent = '⏳ Testing RT...';
+            
+            try {
+                const response = await fetch(`/api/tweets/${testTweetId}/retweet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tweet_url: `https://twitter.com/x/status/${testTweetId}`
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ RT test successful via ${result.method_used}`, 'success');
+                    rtBtn.textContent = '✅ RT Worked';
+                    rtBtn.classList.add('success');
+                } else if (result.already_retweeted) {
+                    showNotification('ℹ️ Tweet already retweeted', 'info');
+                    rtBtn.textContent = '✅ Already RT';
+                } else {
+                    throw new Error(result.message || 'RT test failed');
+                }
+                
+            } catch (error) {
+                console.error('Test RT error:', error);
+                showNotification(`❌ RT test failed: ${error.message}`, 'error');
+                rtBtn.disabled = false;
+                rtBtn.textContent = originalText;
+            }
+        }
+        
+        function toggleTestQuoteBox() {
+            const quoteSection = document.getElementById('test-quote-section');
+            const qrtBtn = document.getElementById('test-qrt-btn');
+            
+            if (quoteSection.classList.contains('active')) {
+                quoteSection.classList.remove('active');
+                qrtBtn.textContent = '💬 Test QRT';
+                
+                // Clear textarea
+                document.getElementById('test-quote-textarea').value = '';
+                updateTestQuoteCharacterCount();
+            } else {
+                if (!testTweetId) {
+                    showNotification('⚠️ Please extract a tweet ID first', 'warning');
+                    return;
+                }
+                
+                quoteSection.classList.add('active');
+                qrtBtn.textContent = '💬 Close QRT';
+                
+                // Focus textarea
+                setTimeout(() => {
+                    document.getElementById('test-quote-textarea').focus();
+                }, 100);
+            }
+        }
+        
+        function updateTestQuoteCharacterCount() {
+            const textarea = document.getElementById('test-quote-textarea');
+            const counter = document.getElementById('test-quote-counter');
+            const sendBtn = document.getElementById('test-quote-send-btn');
+            
+            const length = textarea.value.length;
+            const remaining = 240 - length;
+            
+            counter.textContent = `${length}/240`;
+            
+            // Update counter color
+            counter.className = 'discovery-character-counter';
+            if (remaining < 10) {
+                counter.classList.add('error');
+            } else if (remaining < 30) {
+                counter.classList.add('warning');
+            }
+            
+            // Disable send button if over limit
+            sendBtn.disabled = length > 240;
+        }
+        
+        function cancelTestQuote() {
+            const quoteSection = document.getElementById('test-quote-section');
+            const qrtBtn = document.getElementById('test-qrt-btn');
+            const textarea = document.getElementById('test-quote-textarea');
+            
+            quoteSection.classList.remove('active');
+            qrtBtn.textContent = '💬 Test QRT';
+            textarea.value = '';
+            updateTestQuoteCharacterCount();
+        }
+        
+        async function sendTestQuote() {
+            if (!testTweetId) {
+                showNotification('⚠️ Please extract a tweet ID first', 'warning');
+                return;
+            }
+            
+            const textarea = document.getElementById('test-quote-textarea');
+            const sendBtn = document.getElementById('test-quote-send-btn');
+            const quoteText = textarea.value.trim();
+            
+            if (quoteText.length > 240) {
+                showNotification('⚠️ Quote text too long (max 240 characters)', 'warning');
+                return;
+            }
+            
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ Testing QRT...';
+            
+            try {
+                // Use n8n webhook directly
+                const response = await fetch('https://stacydj.app.n8n.cloud/webhook/twitter-quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        body: {
+                            tweet_id: testTweetId,
+                            quote_text: quoteText
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('✅ QRT test successful via n8n!', 'success');
+                    sendBtn.textContent = '✅ QRT Worked';
+                    sendBtn.classList.add('success');
+                    
+                    // Update main QRT button  
+                    const qrtBtn = document.getElementById('test-qrt-btn');
+                    qrtBtn.textContent = '✅ QRT Worked';
+                    
+                    // Close quote box
+                    setTimeout(() => {
+                        cancelTestQuote();
+                    }, 1500);
+                    
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+            } catch (error) {
+                console.error('Test QRT error:', error);
+                showNotification(`❌ QRT test failed: ${error.message}`, 'error');
+                sendBtn.disabled = false;
+                sendBtn.textContent = originalText;
+            }
+        }
+        
         // Initialize discovery source count on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadDiscoverySourceCount();
+            loadTwitterLists();
         });
     </script>
 </body>
